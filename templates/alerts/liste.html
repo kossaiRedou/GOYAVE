@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Toutes les alertes{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1>Alertes</h1>
+  <ul class="list-group">
+    {% for alert in alerts %}
+      <li class="list-group-item">
+        <a href="{{ alert.target.get_absolute_url }}">
+          {{ alert.message }}
+        </a>
+      </li>
+    {% empty %}
+      <li class="list-group-item">Aucune alerte à afficher.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

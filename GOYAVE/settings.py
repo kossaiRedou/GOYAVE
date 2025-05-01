@@ -22,6 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ALLOWED_HOSTS = []
 
+# seuil global pour alerte stock bas
+LOW_STOCK_THRESHOLD = env.int('LOW_STOCK_THRESHOLD', default=5)
+
 
 # Application definition
 
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
     'ventes',
     'stocks',
     "fournisseurs",
+    "alerts",
 ]
 
 
@@ -63,6 +67,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'alerts.context_processors.alerts', # context processor pour les alertes
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
