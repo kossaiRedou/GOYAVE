@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     VenteListView, VenteDetailView,
     vente_create, VenteDeleteView,
-    paiement_create, facture_generate
+    paiement_create, facture_generate,
+    VenteUpdateView
 )
 
 app_name = 'ventes'
@@ -13,6 +14,7 @@ urlpatterns = [
     path('<int:pk>/supprimer/', VenteDeleteView.as_view(), name='supprimer'),
     path('<int:pk>/paiement/', paiement_create, name='paiement'),
     path('<int:pk>/facture/', facture_generate, name='facture'),
+    path('<int:pk>/modifier/', VenteUpdateView.as_view(), name='modifier'),
 
 
 ]

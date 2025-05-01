@@ -1,0 +1,31 @@
+{# templates/accounts/team_list.html #}
+{% extends 'base.html' %}
+{% block title %}Mon équipe{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1>Mon équipe</h1>
+  <a class="btn btn-success mb-3" href="{% url 'accounts:team_add' %}">+ Ajouter un employé</a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nom d’utilisateur</th><th>Email</th><th>Rôle</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in employees %}
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.get_role_display }}</td>
+        <td>
+          <a class="btn btn-sm btn-warning" href="{% url 'accounts:team_edit' user.pk %}">Éditer</a>
+          <a class="btn btn-sm btn-danger" href="{% url 'accounts:team_delete' user.pk %}">Suppr.</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Aucun employé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

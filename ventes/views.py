@@ -6,6 +6,12 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, DetailView, DeleteView
 from .models import Vente, VenteDetail, PaiementVente
 from .forms import VenteForm, VenteDetailFormSet, PaiementVenteForm
+from django.views.generic import UpdateView
+from .models import Vente, VenteDetail, PaiementVente
+from .forms import VenteForm, VenteDetailFormSet
+from django.db import transaction
+
+
 
 # --- AJOUTER CETTE IMPORTATION ---
 from stocks.models import MouvementStock
@@ -100,3 +106,61 @@ def facture_generate(request, pk):
     vente = get_object_or_404(Vente, pk=pk)
     vente.generate_facture()
     return redirect('ventes:detail', pk=pk)
+
+
+
+
+
+
+
+#-----------------------------------------------below is the code for the update view-----------------------------------------------
+
+from django.db import transaction
+from decimal import Decimal
+from django.shortcuts import redirect
+from django.views.generic.edit import UpdateView
+from .models import Vente
+from .forms import VenteForm, VenteDetailFormSet
+
+class VenteUpdateView(UpdateView):
+    model = Vente
+    form_class = VenteForm
+    template_name = 'ventes/form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = VenteDetailFormSet(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = VenteDetailFormSet(instance=self.object)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        formset = VenteDetailFormSet(request.POST, instance=self.object)
+
+        if form.is_valid() and formset.is_valid():
+            return self.form_valid(form, formset)
+        else:
+            return self.form_invalid(form, formset)
+
+    def form_valid(self, form, formset):
+        with transaction.atomic():
+            self.object = form.save(commit=False)
+
+            montant_total = Decimal('0.00')
+            for f in formset:
+                if f.cleaned_data and not f.cleaned_data.get('DELETE', False):
+                    montant_total += f.cleaned_data['quantite'] * f.cleaned_data['prix_unitaire']
+
+            self.object.montant_total = montant_total
+            self.object.save()
+
+            formset.instance = self.object
+            formset.save()
+
+        return redirect(self.object.get_absolute_url())
+
+    def form_invalid(self, form, formset):
+        return self.render_to_response(self.get_context_data(form=form, formset=formset))

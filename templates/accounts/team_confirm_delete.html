@@ -1,0 +1,14 @@
+{# templates/accounts/team_confirm_delete.html #}
+{% extends 'base.html' %}
+{% block title %}Supprimer employé{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1>Supprimer « {{ object.username }} » ?</h1>
+  <p>Cette action est irréversible.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Oui, supprimer</button>
+    <a class="btn btn-light" href="{% url 'accounts:team_list' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

@@ -43,20 +43,19 @@
   </ul>
 
   <div class="mt-4">
-    {# Appelle la vue qui regénère le PDF avec la méthode generate_facture() #}
-    <a class="btn btn-success"
-       href="{% url 'ventes:facture' vente.pk %}">
+    <a class="btn btn-success" href="{% url 'ventes:facture' vente.pk %}">
       Générer une facture
     </a>
 
-    {# Si une facture existe déjà, on peut aussi la télécharger #}
     {% if vente.facture_pdf %}
-      <a class="btn btn-primary"
-         href="{{ vente.facture_pdf.url }}"
-         target="_blank">
+      <a class="btn btn-primary" href="{{ vente.facture_pdf.url }}" target="_blank">
         Télécharger la dernière facture
       </a>
     {% endif %}
+
+    <a class="btn btn-info" href="{% url 'ventes:modifier' vente.pk %}">
+      Modifier la vente
+    </a>
 
     <a class="btn btn-warning" href="{% url 'ventes:nouvelle' %}">Nouvelle vente</a>
     <a class="btn btn-secondary" href="{% url 'ventes:liste' %}">Retour</a>

@@ -1,0 +1,9 @@
+{# templates/accounts/logout.html #}
+{% extends 'base.html' %}
+{% block title %}Déconnexion{% endblock %}
+{% block content %}
+<div class="container py-4 text-center">
+  <h1>Vous êtes déconnecté·e</h1>
+  <a class="btn btn-primary mt-3" href="{% url 'accounts:login' %}">Se reconnecter</a>
+</div>
+{% endblock %}

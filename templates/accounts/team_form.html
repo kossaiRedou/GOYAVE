@@ -1,0 +1,16 @@
+{# templates/accounts/team_form.html #}
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Modifier employé{% else %}Nouvel employé{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 500px;">
+  <h1 class="mb-4">
+    {% if form.instance.pk %}Modifier employé{% else %}Ajouter employé{% endif %}
+  </h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+    <a class="btn btn-secondary" href="{% url 'accounts:team_list' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,7 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container py-4">
-  <h1>Nouvelle vente</h1>
+  <h1>
+    {% if form.instance.pk %}
+      Modifier la vente #{{ form.instance.pk }}
+    {% else %}
+      Nouvelle vente
+    {% endif %}
+  </h1>
+
   <form method="post" novalidate>
     {% csrf_token %}
 
@@ -9,10 +16,19 @@
     <div class="mb-3">
       {{ form.client.label_tag }}
       {{ form.client }}
+      {% if form.client.errors %}
+        <div class="text-danger">{{ form.client.errors }}</div>
+      {% endif %}
     </div>
 
-    {# Lignes de vente #}
     <h2>Lignes de vente</h2>
+
+    {% if formset.non_form_errors %}
+      <div class="alert alert-danger">
+        {{ formset.non_form_errors }}
+      </div>
+    {% endif %}
+
     {{ formset.management_form }}
     <table class="table">
       <thead>
@@ -25,6 +41,22 @@
       </thead>
       <tbody>
         {% for fs in formset %}
+        {% if fs.errors %}
+        <tr>
+          <td colspan="4">
+            <ul class="text-danger">
+              {% for error in fs.non_field_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+              {% for field in fs.visible_fields %}
+                {% for error in field.errors %}
+                  <li>{{ field.label }} : {{ error }}</li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% endif %}
         <tr>
           <td>{{ fs.produit }}</td>
           <td>{{ fs.quantite }}</td>
@@ -35,17 +67,22 @@
       </tbody>
     </table>
 
-    {# Champ paiement initial obligatoire #}
+    {% if not form.instance.pk %}
     <div class="mb-3" style="max-width: 300px;">
       {{ form.paiement.label_tag }}
       {{ form.paiement }}
+      {% if form.paiement.errors %}
+        <div class="text-danger">{{ form.paiement.errors }}</div>
+      {% endif %}
       {% if form.paiement.help_text %}
         <div class="form-text">{{ form.paiement.help_text }}</div>
       {% endif %}
     </div>
+    {% endif %}
 
-    {# Bouton unique d'enregistrement #}
-    <button type="submit" class="btn btn-primary">Enregistrer</button>
+    <button type="submit" class="btn btn-primary">
+      {% if form.instance.pk %}Enregistrer les modifications{% else %}Créer{% endif %}
+    </button>
     <a class="btn btn-secondary" href="{% url 'ventes:liste' %}">Annuler</a>
   </form>
 </div>

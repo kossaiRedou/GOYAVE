@@ -40,6 +40,14 @@
             <a class="nav-link {% if request.resolver_match.app_name == 'fournisseurs' %}active{% endif %}"
                href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
           </li>
+          <!--===================== AFFICHE ONGLET VERS EQUIPE SI CONNECTER EN TANT QUE MANAGER ====================== -->
+              {% if user.is_authenticated %}
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'accounts:team_list' %}">
+                    Équipe
+                  </a>
+              </li>
+              {% endif %}
           <!-- Alerte stock bas -->
           <!-- Nav additions for low-stock alerts -->
           <li class="nav-item dropdown">
@@ -65,6 +73,10 @@
                   Voir toutes les alertes
                 </a>
               </li>
+
+              
+
+
             </ul>
           </li>
         </ul>
