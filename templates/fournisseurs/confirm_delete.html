@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
+
+  <h1>Supprimer « {{ object.nom }} » ?</h1>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Oui, supprimer</button>
+    <a class="btn btn-secondary" href="{% url 'fournisseurs:liste' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Ventes récentes</h1>
+  <a class="btn btn-success mb-3" href="{% url 'ventes:nouvelle' %}">+ Nouvelle vente</a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Client</th>
+        <th>Date</th>
+        <th>Montant total</th>
+        <th>Reste dû</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for vente in ventes %}
+      <tr>
+        <td>{{ vente.pk }}</td>
+        <td>{{ vente.client.nom }}</td>
+        <td>{{ vente.date|date:'d/m/Y H:i' }}</td>
+        <td>{{ vente.montant_total }}</td>
+        <td>{{ vente.reste_du }}</td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{% url 'ventes:detail' vente.pk %}">Voir</a>
+          <a class="btn btn-sm btn-danger" href="{% url 'ventes:supprimer' vente.pk %}">Suppr.</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Aucune vente trouvée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if is_paginated %}
+    {% include 'pagination.html' %}
+  {% endif %}
+</div>
+{% endblock %}

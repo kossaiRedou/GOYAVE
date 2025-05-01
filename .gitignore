@@ -1,0 +1,71 @@
+# === Python / Django ===
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+db.sqlite3
+*.sqlite3
+
+# === Environnements virtuels ===
+env/
+venv/
+.goya_env/
+.goyaenv/
+.goya_env/
+.goya_env/*
+
+# === Django user files ===
+media/
+staticfiles/
+
+# === Configuration secrète ===
+.env
+.env.*
+
+# === Logs & reports ===
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+*.tlog
+*.bak
+*.orig
+*.tmp
+*temp
+
+# === Frontend ===
+node_modules/
+dist/
+build/
+out/
+*.lock
+*.cache
+*.patch
+*.diff
+
+# === IDEs / OS ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.suo
+*.njsproj
+*.sln
+*.swp
+
+# === Git config files (except this one) ===
+!.gitignore
+.git/
+
+# === Coverage / tests ===
+coverage/
+htmlcov/
+.tox/
+.pytest_cache/
+
+
+# autres fichiers à ignorer
+*.log
+*temp.py

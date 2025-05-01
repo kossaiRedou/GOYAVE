@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Produits</h1>
+  <a class="btn btn-success mb-3" href="{% url 'produits:ajouter' %}">+ Nouveau produit</a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Code</th>
+        <th>Prix</th>
+        <th>Devise</th>
+        <th>Stock</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for produit in produits %}
+      <tr>
+        <td>{{ produit.nom }}</td>
+        <td>{{ produit.code }}</td>
+        <td>{{ produit.prix_vente }}</td>
+        <td>{{ produit.get_monnaie_display }}</td>
+        <td>{{ produit.stock }}</td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{% url 'produits:detail' produit.pk %}">Voir</a>
+          <a class="btn btn-sm btn-warning" href="{% url 'produits:modifier' produit.pk %}">Éditer</a>
+          <a class="btn btn-sm btn-danger"  href="{% url 'produits:supprimer' produit.pk %}">Suppr.</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Aucun produit trouvé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if is_paginated %}
+    {% include 'produits/pagination.html' %}
+  {% endif %}
+</div>
+{% endblock %}

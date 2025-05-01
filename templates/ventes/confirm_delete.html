@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Supprimer Vente #{{ vente.pk }} ?</h1>
+  <p>Cette action supprimera également toutes les lignes et paiements associés.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Oui, supprimer</button>
+    <a class="btn btn-light" href="{% url 'ventes:detail' vente.pk %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

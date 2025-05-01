@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Détails de {{ produit.nom }}</h1>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      {% if produit.image %}
+        <img src="{{ produit.image.url }}" class="img-fluid rounded" alt="{{ produit.nom }}">
+      {% else %}
+        <div class="border bg-light p-5 text-center">Pas d'image</div>
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      <dl class="row">
+        <dt class="col-sm-4">Code</dt><dd class="col-sm-8">{{ produit.code }}</dd>
+        <dt class="col-sm-4">Prix de vente</dt><dd class="col-sm-8">{{ produit.prix_vente }} {{ produit.get_monnaie_display }}</dd>
+        <dt class="col-sm-4">Stock</dt><dd class="col-sm-8">{{ produit.stock }}</dd>
+        <dt class="col-sm-4">Créé le</dt><dd class="col-sm-8">{{ produit.created_at|date:'d/m/Y H:i' }}</dd>
+      </dl>
+      <a class="btn btn-warning" href="{% url 'produits:modifier' produit.pk %}">Modifier</a>
+      <a class="btn btn-secondary" href="{% url 'produits:liste' %}">Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Fournisseur – {{ fournisseur.nom }}{% endblock %}
+{% block content %}
+<nav class="mb-4">
+  <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+  <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+  <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+  <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+</nav>
+
+<div class="container py-4">
+  <h1>Fournisseur : {{ fournisseur.nom }}</h1>
+  <dl class="row">
+    <dt class="col-sm-3">Contact</dt><dd class="col-sm-9">{{ fournisseur.contact }}</dd>
+    <dt class="col-sm-3">E-mail</dt><dd class="col-sm-9">{{ fournisseur.email }}</dd>
+    <dt class="col-sm-3">Statut</dt>
+      <dd class="col-sm-9">{{ fournisseur.actif|yesno:"Actif,Inactif" }}</dd>
+  </dl>
+
+  <div class="mb-4">
+    <a class="btn btn-primary" href="{% url 'fournisseurs:modifier' fournisseur.pk %}">Éditer</a>
+    <a class="btn btn-secondary" href="{% url 'fournisseurs:liste' %}">Retour à la liste</a>
+  </div>
+
+  <h2>Commandes récentes</h2>
+  <table class="table table-hover">
+    <thead>
+      <tr><th>#</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for cmd in fournisseur.commandes.all|slice:":5" %}
+      <tr>
+        <td>{{ cmd.pk }}</td>
+        <td>{{ cmd.date_commande|date:"d/m/Y" }}</td>
+        <td>{{ cmd.get_statut_display }}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary"
+             href="{% url 'fournisseurs:commande_update' cmd.pk %}">
+            Détail / Éditer
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Pas encore de commandes.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
+
+  <h1>Commandes fournisseurs</h1>
+  <a class="btn btn-success mb-3" href="{% url 'fournisseurs:commande_create' %}">+ Nouvelle commande</a>
+  <table class="table table-hover">
+    <thead>
+      <tr><th>#</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for cmd in commandes %}
+      <tr>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:commande_detail' cmd.pk %}">{{ cmd.pk }}</a>
+        </td>
+        <td>{{ cmd.fournisseur.nom }}</td>
+        <td>{{ cmd.date_commande|date:"d/m/Y H:i" }}</td>
+        <td>{{ cmd.get_statut_display }}</td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:commande_update' cmd.pk %}">Éditer</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Aucune commande.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

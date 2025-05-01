@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
+
+  <h1>Paiements fournisseurs</h1>
+  <a class="btn btn-success mb-3" href="{% url 'fournisseurs:paiement_create' %}">+ Nouveau paiement</a>
+  <table class="table table-hover">
+    <thead><tr><th>#</th><th>Commande</th><th>Montant</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for pay in paiements %}
+      <tr>
+        <td>{{ pay.pk }}</td>
+        <td>{{ pay.commande.pk }}</td>
+        <td>{{ pay.montant }}</td>
+        <td>{{ pay.date_paiement|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Aucun paiement.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

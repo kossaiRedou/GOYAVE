@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
+
+  <h1>{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} commande</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    {{ formset.management_form }}
+    <table class="table table-hover">
+      <thead><tr><th>Produit</th><th>Quantité</th><th>Prix achat</th><th>Suppr.</th></tr></thead>
+      <tbody>
+        {% for fs in formset %}
+        <tr>
+          <td>{{ fs.produit }}</td>
+          <td>{{ fs.quantite }}</td>
+          <td>{{ fs.prix_achat }}</td>
+          <td>{{ fs.DELETE }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+    <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

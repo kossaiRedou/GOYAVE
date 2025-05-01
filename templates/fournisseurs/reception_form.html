@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
+
+  <h1>Nouvelle réception</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+    <a class="btn btn-secondary" href="{% url 'fournisseurs:receptions' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

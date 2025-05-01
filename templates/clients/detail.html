@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Détails de {{ client.nom }}</h1>
+  <dl class="row">
+    <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ client.email }}</dd>
+    <dt class="col-sm-3">Téléphone</dt><dd class="col-sm-9">{{ client.telephone }}</dd>
+    <dt class="col-sm-3">Adresse</dt><dd class="col-sm-9">{{ client.adresse }}</dd>
+  </dl>
+  <a class="btn btn-warning" href="{% url 'clients:modifier' client.pk %}">Modifier</a>
+  <a class="btn btn-secondary" href="{% url 'clients:liste' %}">Retour</a>
+</div>
+{% endblock %}

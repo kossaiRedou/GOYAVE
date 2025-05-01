@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Détail Vente #{{ vente.pk }}</h1>
+  <p><strong>Client :</strong> {{ vente.client.nom }}</p>
+  <p><strong>Date :</strong> {{ vente.date|date:'d/m/Y H:i' }}</p>
+  <p><strong>Montant total :</strong> {{ vente.montant_total }}</p>
+  <p><strong>Reste dû :</strong> {{ vente.reste_du }}</p>
+
+  <h2>Lignes</h2>
+  <table class="table">
+    <thead>
+      <tr><th>Produit</th><th>Quantité</th><th>PU</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      {% for ligne in vente.lignes.all %}
+      <tr>
+        <td>{{ ligne.produit.nom }}</td>
+        <td>{{ ligne.quantite }}</td>
+        <td>{{ ligne.prix_unitaire }}</td>
+        <td>{{ ligne.montant_ligne }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Paiements</h2>
+  <form method="post" action="{% url 'ventes:paiement' vente.pk %}">
+    {% csrf_token %}
+    <div class="input-group mb-3" style="max-width: 300px;">
+      {{ paiement_form.montant }}
+      <button class="btn btn-outline-primary" type="submit">Enregistrer paiement</button>
+    </div>
+  </form>
+  <ul class="list-group mb-3">
+    {% for pay in vente.paiements.all %}
+    <li class="list-group-item">
+      {{ pay.date_paiement|date:'d/m/Y H:i' }} : {{ pay.montant }}
+    </li>
+    {% empty %}
+    <li class="list-group-item">Aucun paiement enregistré.</li>
+    {% endfor %}
+  </ul>
+
+  <div class="mt-4">
+    {# Appelle la vue qui regénère le PDF avec la méthode generate_facture() #}
+    <a class="btn btn-success"
+       href="{% url 'ventes:facture' vente.pk %}">
+      Générer une facture
+    </a>
+
+    {# Si une facture existe déjà, on peut aussi la télécharger #}
+    {% if vente.facture_pdf %}
+      <a class="btn btn-primary"
+         href="{{ vente.facture_pdf.url }}"
+         target="_blank">
+        Télécharger la dernière facture
+      </a>
+    {% endif %}
+
+    <a class="btn btn-warning" href="{% url 'ventes:nouvelle' %}">Nouvelle vente</a>
+    <a class="btn btn-secondary" href="{% url 'ventes:liste' %}">Retour</a>
+  </div>
+</div>
+{% endblock %}

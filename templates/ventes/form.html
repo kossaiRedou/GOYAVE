@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Nouvelle vente</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {# Sélecteur de client #}
+    <div class="mb-3">
+      {{ form.client.label_tag }}
+      {{ form.client }}
+    </div>
+
+    {# Lignes de vente #}
+    <h2>Lignes de vente</h2>
+    {{ formset.management_form }}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Quantité</th>
+          <th>Prix unitaire</th>
+          <th>Supprimer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fs in formset %}
+        <tr>
+          <td>{{ fs.produit }}</td>
+          <td>{{ fs.quantite }}</td>
+          <td>{{ fs.prix_unitaire }}</td>
+          <td>{{ fs.DELETE }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Champ paiement initial obligatoire #}
+    <div class="mb-3" style="max-width: 300px;">
+      {{ form.paiement.label_tag }}
+      {{ form.paiement }}
+      {% if form.paiement.help_text %}
+        <div class="form-text">{{ form.paiement.help_text }}</div>
+      {% endif %}
+    </div>
+
+    {# Bouton unique d'enregistrement #}
+    <button type="submit" class="btn btn-primary">Enregistrer</button>
+    <a class="btn btn-secondary" href="{% url 'ventes:liste' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}
