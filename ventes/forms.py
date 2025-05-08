@@ -1,5 +1,5 @@
-# ventes/forms.py
 
+### `ventes/forms.py`
 from decimal import Decimal
 from django import forms
 from django.forms import inlineformset_factory
@@ -10,28 +10,26 @@ class VenteForm(forms.ModelForm):
         label="Paiement initial",
         required=True,
         min_value=Decimal('0.00'),
-        max_digits=12,
-        decimal_places=2,
-        #initial=Decimal('0.00'),
-        help_text="Saisissez le montant payé immédiatement (peut être 0)."
+        max_digits=12, decimal_places=2,
+        help_text="Montant payé à la création (peut être 0)."
     )
-
     class Meta:
         model = Vente
-        fields = ['client']  # on gère 'paiement' séparément
+        fields = ['client']
+        exclude = ()
 
 class VenteDetailForm(forms.ModelForm):
     class Meta:
         model = VenteDetail
         fields = ['produit', 'quantite', 'prix_unitaire']
 
+
 VenteDetailFormSet = inlineformset_factory(
-    parent_model=Vente,
-    model=VenteDetail,
+    Vente, VenteDetail,
     form=VenteDetailForm,
-    extra=1,
-    can_delete=True
+    extra=1
 )
+
 
 class PaiementVenteForm(forms.ModelForm):
     class Meta:

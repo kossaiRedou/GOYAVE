@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="container py-4">
   <h1>
@@ -41,49 +42,66 @@
       </thead>
       <tbody>
         {% for fs in formset %}
-        {% if fs.errors %}
-        <tr>
-          <td colspan="4">
-            <ul class="text-danger">
-              {% for error in fs.non_field_errors %}
-                <li>{{ error }}</li>
-              {% endfor %}
-              {% for field in fs.visible_fields %}
-                {% for error in field.errors %}
-                  <li>{{ field.label }} : {{ error }}</li>
-                {% endfor %}
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
-        {% endif %}
-        <tr>
-          <td>{{ fs.produit }}</td>
-          <td>{{ fs.quantite }}</td>
-          <td>{{ fs.prix_unitaire }}</td>
-          <td>{{ fs.DELETE }}</td>
-        </tr>
+          {% if fs.errors %}
+            <tr>
+              <td colspan="4">
+                <ul class="text-danger">
+                  {% for error in fs.non_field_errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                  {% for field in fs.visible_fields %}
+                    {% for error in field.errors %}
+                      <li>{{ field.label }} : {{ error }}</li>
+                    {% endfor %}
+                  {% endfor %}
+                </ul>
+              </td>
+            </tr>
+          {% endif %}
+          <tr class="formset_row">
+            {# Champs cachés pour id et DELETE, nécessaires à Django #}
+            {% for hidden in fs.hidden_fields %}
+              {{ hidden }}
+            {% endfor %}
+            <td>{{ fs.produit }}</td>
+            <td>{{ fs.quantite }}</td>
+            <td>{{ fs.prix_unitaire }}</td>
+            <td>{{ fs.DELETE }}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
 
     {% if not form.instance.pk %}
-    <div class="mb-3" style="max-width: 300px;">
-      {{ form.paiement.label_tag }}
-      {{ form.paiement }}
-      {% if form.paiement.errors %}
-        <div class="text-danger">{{ form.paiement.errors }}</div>
-      {% endif %}
-      {% if form.paiement.help_text %}
-        <div class="form-text">{{ form.paiement.help_text }}</div>
-      {% endif %}
-    </div>
+      <div class="mb-3" style="max-width: 300px;">
+        {{ form.paiement.label_tag }}
+        {{ form.paiement }}
+        {% if form.paiement.errors %}
+          <div class="text-danger">{{ form.paiement.errors }}</div>
+        {% endif %}
+        {% if form.paiement.help_text %}
+          <div class="form-text">{{ form.paiement.help_text }}</div>
+        {% endif %}
+      </div>
     {% endif %}
 
     <button type="submit" class="btn btn-primary">
       {% if form.instance.pk %}Enregistrer les modifications{% else %}Créer{% endif %}
     </button>
-    <a class="btn btn-secondary" href="{% url 'ventes:liste' %}">Annuler</a>
+    <a class="btn btn-secondary" href="{% url 'ventes:list' %}">Annuler</a>
   </form>
+
+  {# Scripts pour formset dynamique #}
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="{% static 'formset/jquery.formset.js' %}"></script>
+  <script>
+    $('.formset_row').formset({
+      prefix: '{{ formset.prefix }}',
+      addText: 'Ajouter une ligne',
+      deleteText: 'Supprimer',
+      formCssClass: 'formset_row'
+    });
+  </script>
 </div>
 {% endblock %}
+

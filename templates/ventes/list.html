@@ -24,7 +24,8 @@
         <td>{{ vente.reste_du }}</td>
         <td>
           <a class="btn btn-sm btn-primary" href="{% url 'ventes:detail' vente.pk %}">Voir</a>
-          <a class="btn btn-sm btn-danger" href="{% url 'ventes:supprimer' vente.pk %}">Suppr.</a>
+          <a class="btn btn-sm btn-warning" href="{% url 'ventes:modifier' vente.pk %}">Modifier</a>
+          <a class="btn btn-sm btn-danger" href="{% url 'ventes:delete' vente.pk %}">Supprimer</a>
         </td>
       </tr>
       {% empty %}
@@ -32,8 +33,5 @@
       {% endfor %}
     </tbody>
   </table>
-  {% if is_paginated %}
-    {% include 'pagination.html' %}
-  {% endif %}
 </div>
 {% endblock %}

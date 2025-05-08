@@ -1,20 +1,18 @@
 from django.urls import path
 from .views import (
     VenteListView, VenteDetailView,
-    vente_create, VenteDeleteView,
+    vente_create, vente_update,
     paiement_create, facture_generate,
-    VenteUpdateView
+    VenteDeleteView
 )
 
 app_name = 'ventes'
 urlpatterns = [
-    path('',            VenteListView.as_view(), name='liste'),
-    path('nouvelle/',   vente_create,              name='nouvelle'),
-    path('<int:pk>/',   VenteDetailView.as_view(), name='detail'),
-    path('<int:pk>/supprimer/', VenteDeleteView.as_view(), name='supprimer'),
-    path('<int:pk>/paiement/', paiement_create, name='paiement'),
-    path('<int:pk>/facture/', facture_generate, name='facture'),
-    path('<int:pk>/modifier/', VenteUpdateView.as_view(), name='modifier'),
-
-
+    path('',          VenteListView.as_view(),  name='list'),
+    path('new/',      vente_create,             name='nouvelle'),
+    path('<int:pk>/', VenteDetailView.as_view(), name='detail'),
+    path('<int:pk>/edit/',   vente_update,       name='modifier'),
+    path('<int:pk>/delete/', VenteDeleteView.as_view(), name='delete'),
+    path('<int:pk>/paiement/', paiement_create,    name='paiement'),
+    path('<int:pk>/facture/',  facture_generate,    name='facture'),
 ]
