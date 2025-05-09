@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
+
 <div class="container py-4">
   <nav class="mb-4">
     <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
@@ -8,26 +11,90 @@
     <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
   </nav>
 
-  <h1>{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} commande</h1>
+  <h1>
+    {% if form.instance.pk %}
+      Modifier la commande #{{ form.instance.pk }}
+    {% else %}
+      Nouvelle commande
+    {% endif %}
+  </h1>
+
   <form method="post" novalidate>
     {% csrf_token %}
-    {{ form.as_p }}
-    {{ formset.management_form }}
-    <table class="table table-hover">
-      <thead><tr><th>Produit</th><th>Quantité</th><th>Prix achat</th><th>Suppr.</th></tr></thead>
-      <tbody>
-        {% for fs in formset %}
+
+```
+{{ form.as_p }}
+
+<h2>Lignes de commande</h2>
+
+{% if formset.non_form_errors %}
+  <div class="alert alert-danger">
+    {{ formset.non_form_errors }}
+  </div>
+{% endif %}
+
+{{ formset.management_form }}
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Produit</th>
+      <th>Quantité</th>
+      <th>Prix achat</th>
+      <th>Supprimer</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fs in formset %}
+      {% if fs.errors %}
         <tr>
-          <td>{{ fs.produit }}</td>
-          <td>{{ fs.quantite }}</td>
-          <td>{{ fs.prix_achat }}</td>
-          <td>{{ fs.DELETE }}</td>
+          <td colspan="4">
+            <ul class="text-danger">
+              {% for error in fs.non_field_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+              {% for field in fs.visible_fields %}
+                {% for error in field.errors %}
+                  <li>{{ field.label }} : {{ error }}</li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </td>
         </tr>
+      {% endif %}
+      <tr class="formset_row">
+        {% for hidden in fs.hidden_fields %}
+          {{ hidden }}
         {% endfor %}
-      </tbody>
-    </table>
-    <button class="btn btn-primary" type="submit">Enregistrer</button>
-    <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">Annuler</a>
+        <td>{{ fs.produit }}</td>
+        <td>{{ fs.quantite }}</td>
+        <td>{{ fs.prix_achat }}</td>
+        <td>{{ fs.DELETE }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<button type="submit" class="btn btn-primary">
+  {% if form.instance.pk %}Enregistrer{% else %}Créer{% endif %}
+</button>
+<a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">Annuler</a>
+```
+
   </form>
+
+
+  <!-- ============================ block js ================================== -->
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script src="{% static 'formset/jquery.formset.js' %}"></script>
+
+  <script>
+    $('.formset_row').formset({
+      prefix: '{{ formset.prefix }}',
+      addText: 'Ajouter une ligne',
+      deleteText: 'Supprimer',
+      formCssClass: 'formset_row'
+    });
+  </script>
 </div>
 {% endblock %}

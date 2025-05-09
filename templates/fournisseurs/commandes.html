@@ -26,6 +26,9 @@
         <td>
           <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:commande_update' cmd.pk %}">Éditer</a>
         </td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:reception_commande' cmd.pk %}">Réceptionner</a>
+        </td>
       </tr>
       {% empty %}
       <tr><td colspan="5">Aucune commande.</td></tr>

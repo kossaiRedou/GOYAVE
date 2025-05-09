@@ -8,12 +8,43 @@
     <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
   </nav>
 
-  <h1>Nouvelle réception</h1>
+  <h1>Réception de la commande #{{ commande.pk }}</h1>
+
   <form method="post" novalidate>
     {% csrf_token %}
-    {{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Enregistrer</button>
-    <a class="btn btn-secondary" href="{% url 'fournisseurs:receptions' %}">Annuler</a>
+    {{ formset.management_form }}
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Qté commandée</th>
+          <th>Qté reçue</th>
+          <th>Référence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for form in formset.forms %}
+        <tr>
+          {# Le champ produit est caché, on l'affiche en texte via initial['produit_label'] #}
+          <td>
+            {{ form.produit }}  {# hidden input #}
+            {{ form.initial.produit_label }}
+          </td>
+          <td>{{ form.quantite_commandee }}</td>
+          <td>{{ form.quantite_livree }}</td>
+          <td>{{ form.reference }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">
+      Enregistrer la réception
+    </button>
+    <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">
+      Annuler
+    </a>
   </form>
 </div>
 {% endblock %}
