@@ -1,5 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django import forms
+from django.views.generic  import View
+from django.forms import inlineformset_factory
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from .models import Fournisseur, CommandeFournisseur, ReceptionAppro, PaiementFournisseur
 from .forms import (
@@ -96,13 +99,90 @@ class ReceptionListView(ListView):
     context_object_name = 'receptions'
     paginate_by = 8
 
-class ReceptionCreateView(CreateView):
-    model = ReceptionAppro
-    form_class = ReceptionApproForm
+
+
+#==========================================================================
+# Réception d'une commande fournisseur
+#==========================================================================
+# fournisseurs/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views import View
+from .models import CommandeFournisseur, ReceptionAppro
+from .forms import BaseReceptionFormSet
+
+class ReceptionCreateView(View):
     template_name = 'fournisseurs/reception_form.html'
-    success_url = reverse_lazy('fournisseurs:receptions')
+
+    def _make_formset(self, cmd, post_data=None):
+        # Prépare l'initial et le label du produit
+        initial = []
+        for lg in cmd.lignes.all():
+            initial.append({
+                'produit': lg.produit.pk,
+                'quantite_commandee': lg.quantite,
+                'produit_label': str(lg.produit),  # pour afficher le nom
+            })
+
+        # On « sous‐classe » le formset pour donner extra = nombre de lignes
+        DynamicReceptionFormSet = type(
+            'DynamicReceptionFormSet',
+            (BaseReceptionFormSet,),
+            {'extra': len(initial)}
+        )
+
+        kwargs = dict(
+            instance=cmd,
+            initial=initial,
+            queryset=ReceptionAppro.objects.none()
+        )
+        if post_data is not None:
+            kwargs['data'] = post_data
+
+        return DynamicReceptionFormSet(**kwargs)
+
+    def get(self, request, pk):
+        cmd = get_object_or_404(CommandeFournisseur, pk=pk)
+        formset = self._make_formset(cmd)
+        return render(request, self.template_name, {
+            'commande': cmd,
+            'formset': formset,
+        })
+
+    def post(self, request, pk):
+        cmd = get_object_or_404(CommandeFournisseur, pk=pk)
+        formset = self._make_formset(cmd, post_data=request.POST)
+        if formset.is_valid():
+            formset.save()
+            return redirect('fournisseurs:receptions')
+        # si invalide, on ré‐affiche avec le même initial
+        return render(request, self.template_name, {
+            'commande': cmd,
+            'formset': formset,
+        })
+
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+ #==========================================================================       
+
+
+
+
+
+
+
 
 # Paiements
+#==========================================================================
 class PaiementListView(ListView):
     model = PaiementFournisseur
     template_name = 'fournisseurs/paiements.html'

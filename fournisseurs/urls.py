@@ -34,7 +34,7 @@ urlpatterns = [
 
     # Réceptions
     path('receptions/', ReceptionListView.as_view(), name='receptions'),
-    path('receptions/nouveau/', ReceptionCreateView.as_view(), name='reception_create'),
+    path('commandes/<int:pk>/receptionner/', ReceptionCreateView.as_view(), name='reception_commande'),
 
     # Paiements fournisseurs
     path('paiements/', PaiementListView.as_view(), name='paiements'),

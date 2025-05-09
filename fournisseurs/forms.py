@@ -25,10 +25,41 @@ CommandeLigneFormSet = inlineformset_factory(
     extra=1, can_delete=True
 )
 
+
+
+#====================================================
+# fournisseurs/forms.py
+#====================================================
+from django import forms
+from django.forms import inlineformset_factory
+from .models import CommandeFournisseur, ReceptionAppro
+from produits.models import Produit
+
 class ReceptionApproForm(forms.ModelForm):
+    # Champ en lecture seule pour afficher la qté commandée
+    quantite_commandee = forms.IntegerField(
+        label="Qté commandée",
+        required=False,
+        disabled=True,
+    )
+    # On cache le champ produit en HiddenInput pour qu’il soit reposté
+    produit = forms.ModelChoiceField(
+        queryset=Produit.objects.all(),
+        widget=forms.HiddenInput()
+    )
+
     class Meta:
         model = ReceptionAppro
-        fields = ['commande','produit','quantite_livree','reference']
+        fields = ['produit', 'quantite_commandee', 'quantite_livree', 'reference']
+
+
+# InlineFormSet par défaut extra=0
+BaseReceptionFormSet = inlineformset_factory(
+    CommandeFournisseur, ReceptionAppro,
+    form=ReceptionApproForm,
+    extra=0, can_delete=False
+)
+
 
 class PaiementFournisseurForm(forms.ModelForm):
     class Meta:

@@ -44,6 +44,7 @@ class LigneCommande(models.Model):
 class ReceptionAppro(models.Model):
     commande        = models.ForeignKey(CommandeFournisseur, on_delete=models.PROTECT, related_name='receptions')
     produit         = models.ForeignKey(Produit, on_delete=models.PROTECT)
+    quantite_commandee = models.PositiveIntegerField(blank=True, null=True)
     quantite_livree = models.PositiveIntegerField()
     reference       = models.CharField(max_length=255, blank=True)
     date_reception  = models.DateTimeField(auto_now_add=True)
