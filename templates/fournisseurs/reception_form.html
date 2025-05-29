@@ -10,7 +10,7 @@
 
   <h1>Réception de la commande #{{ commande.pk }}</h1>
 
-  <form method="post" novalidate>
+  <form method="post" novalidate id="reception-form">
     {% csrf_token %}
     {{ formset.management_form }}
 
@@ -19,20 +19,25 @@
         <tr>
           <th>Produit</th>
           <th>Qté commandée</th>
-          <th>Qté reçue</th>
+          <th>Quantité à recevoir</th>
           <th>Référence</th>
         </tr>
       </thead>
       <tbody>
         {% for form in formset.forms %}
         <tr>
-          {# Le champ produit est caché, on l'affiche en texte via initial['produit_label'] #}
           <td>
-            {{ form.produit }}  {# hidden input #}
+            {{ form.produit }}  {# champ caché #}
             {{ form.initial.produit_label }}
           </td>
-          <td>{{ form.quantite_commandee }}</td>
-          <td>{{ form.quantite_livree }}</td>
+          <td>{{ form.quantite_commandee.value }}</td>
+          <td>
+            {{ form.quantite_livree }}
+            {# affichage des erreurs sous le champ #}
+            {% for err in form.quantite_livree.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </td>
           <td>{{ form.reference }}</td>
         </tr>
         {% endfor %}
@@ -47,4 +52,31 @@
     </a>
   </form>
 </div>
+
+{# --- Petit script JS pour bloquer côté client les dépassements --- #}
+{% block extra_js %}
+<script>
+document.getElementById('reception-form').addEventListener('submit', function(ev){
+  let invalid = false;
+  // pour chaque ligne, on vérifie que quantité <= qté commandée
+  document.querySelectorAll('input[name$="-quantite_livree"]').forEach(function(input){
+    const qRecue = parseInt(input.value) || 0;
+    // on remonte la qté commandée à partir de la même ligne
+    const qCmd   = parseInt(
+      input.closest('tr').querySelector('td:nth-child(2)').innerText
+    ) || 0;
+    if(qRecue > qCmd){
+      invalid = true;
+      input.classList.add('is-invalid');
+    } else {
+      input.classList.remove('is-invalid');
+    }
+  });
+  if(invalid){
+    ev.preventDefault();
+    alert("Vous avez saisi une quantité supérieure à la quantité commandée.");
+  }
+});
+</script>
+{% endblock %}
 {% endblock %}

@@ -25,5 +25,9 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% if is_paginated %}
+  {% include 'produits/pagination.html' %}
+{% endif %}
 </div>
 {% endblock %}

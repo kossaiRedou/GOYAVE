@@ -24,10 +24,28 @@
         <td>{{ cmd.date_commande|date:"d/m/Y H:i" }}</td>
         <td>{{ cmd.get_statut_display }}</td>
         <td>
-          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:commande_update' cmd.pk %}">Éditer</a>
+          {% if cmd.statut != 'RECEPTIONNEE' %}
+            <a class="btn btn-primary"
+              href="{% url 'fournisseurs:commande_update' cmd.pk %}">
+              Modifier
+            </a>
+          {% else %}
+            <button class="btn btn-primary" disabled>
+              Modifier
+            </button>
+          {% endif %}
         </td>
         <td>
-          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:reception_commande' cmd.pk %}">Réceptionner</a>
+          {% if cmd.statut != 'RECEPTIONNEE' %}
+            <a class="btn btn-primary"
+              href="{% url 'fournisseurs:reception_commande' cmd.pk %}">
+              Réceptionner
+            </a>
+          {% else %}
+            <button class="btn btn-primary" disabled>
+              Réceptionner
+            </button>
+          {% endif %}
         </td>
       </tr>
       {% empty %}

@@ -10,41 +10,61 @@
 
 <div class="container py-4">
   <h1>Commande #{{ commande.pk }}</h1>
+
   <dl class="row">
     <dt class="col-sm-3">Fournisseur</dt>
-      <dd class="col-sm-9">
-        <a href="{% url 'fournisseurs:detail' commande.fournisseur.pk %}">
-          {{ commande.fournisseur.nom }}
-        </a>
-      </dd>
+    <dd class="col-sm-9">
+      <a href="{% url 'fournisseurs:detail' commande.fournisseur.pk %}">
+        {{ commande.fournisseur.nom }}
+      </a>
+    </dd>
+
     <dt class="col-sm-3">Date</dt>
-      <dd class="col-sm-9">{{ commande.date_commande|date:"d/m/Y H:i" }}</dd>
+    <dd class="col-sm-9">{{ commande.date_commande|date:"d/m/Y H:i" }}</dd>
+
     <dt class="col-sm-3">Statut</dt>
-      <dd class="col-sm-9">{{ commande.get_statut_display }}</dd>
+    <dd class="col-sm-9">{{ commande.get_statut_display }}</dd>
+
+    <dt class="col-sm-3">Montant total</dt>
+    <dd class="col-sm-9">{{ commande.montant_total }}</dd>
   </dl>
 
   <h2>Lignes de commande</h2>
   <table class="table table-hover">
-    <thead><tr><th>Produit</th><th>Qté</th><th>PU achat</th><th>Total</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Qté</th>
+        <th>PU achat</th>
+        <th>Total</th>
+      </tr>
+    </thead>
     <tbody>
-      {% with total=0 %}
       {% for lg in commande.lignes.all %}
-      {% with line=lg.quantite|floatformat:0|add:"0"|floatformat:"0" %}
       <tr>
         <td>{{ lg.produit.nom }}</td>
         <td>{{ lg.quantite }}</td>
         <td>{{ lg.prix_achat }}</td>
-        <td>{{ lg.quantite|floatformat:0|floatformat }} x {{ lg.prix_achat }} = {{ lg.quantite|floatformat:0|floatformat|floatformat }} </td>
+        {# widthratio permet de faire : quantite * prix_achat #}
+        <td>
+          {% widthratio lg.quantite 1 lg.prix_achat %}
+        </td>
       </tr>
-      {% endwith %}
+      {% empty %}
+      <tr><td colspan="4">Aucune ligne de commande.</td></tr>
       {% endfor %}
-      {% endwith %}
     </tbody>
   </table>
 
   <h2>Réceptions</h2>
   <table class="table table-hover">
-    <thead><tr><th>Date</th><th>Produit</th><th>Qté reçue</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Produit</th>
+        <th>Qté reçue</th>
+      </tr>
+    </thead>
     <tbody>
       {% for rec in commande.receptions.all %}
       <tr>
@@ -60,7 +80,12 @@
 
   <h2>Paiements</h2>
   <table class="table table-hover">
-    <thead><tr><th>Date</th><th>Montant</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Montant</th>
+      </tr>
+    </thead>
     <tbody>
       {% for pay in commande.paiements.all %}
       <tr>
@@ -73,24 +98,43 @@
     </tbody>
   </table>
 
+  <h2>Ajouter un paiement</h2>
+  <form method="post"
+        action="{% url 'fournisseurs:commande_paiement' commande.pk %}">
+    {% csrf_token %}
+    <div class="input-group mb-3" style="max-width:300px">
+      {{ paiement_form.montant }}
+      <button class="btn btn-outline-primary" type="submit">
+        Enregistrer paiement
+      </button>
+    </div>
+  </form>
+
   <div class="mt-4">
-    <a class="btn btn-primary" href="{% url 'fournisseurs:commande_update' commande.pk %}">
-      Modifier
-    </a>
+    {% if commande.statut != 'RECEPTIONNEE' %}
+      <a class="btn btn-primary"
+         href="{% url 'fournisseurs:commande_update' commande.pk %}">
+        Modifier
+      </a>
+    {% else %}
+      <button class="btn btn-primary" disabled>
+        Modifier
+      </button>
+    {% endif %}
+
     <a class="btn btn-success"
        href="{% url 'fournisseurs:commande_generate_pdf' commande.pk %}">
       Générer PDF
     </a>
 
-    {# Si une facture existe déjà, on peut aussi la télécharger #}
     {% if commande.facture_pdf %}
       <a class="btn btn-primary"
-          href="{{ commande.facture_pdf.url }}"
-          target="_blank">
-          Télécharger la dernière facture
+         href="{{ commande.facture_pdf.url }}"
+         target="_blank">
+        Télécharger la dernière facture
       </a>
-      {% endif %}
-  
+    {% endif %}
+
     <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">
       Retour aux commandes
     </a>
