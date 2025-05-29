@@ -1,6 +1,7 @@
 from django.db import models
 from produits.models import Produit
 from stocks.models import MouvementStock
+from decimal import Decimal
 
 class Fournisseur(models.Model):
     nom     = models.CharField(max_length=255)
@@ -13,14 +14,16 @@ class Fournisseur(models.Model):
 class CommandeFournisseur(models.Model):
     EN_ATTENTE = 'EN_ATTENTE'
     PARTIEL    = 'PARTIEL'
-    LIVRE      = 'LIVRE'
-    STATUT_CHOICES = [(EN_ATTENTE,'En attente'),(PARTIEL,'Partiellement livré'),(LIVRE,'Livré')]
+    RECEP      = 'RECEPTIONNEE'
+    STATUT_CHOICES = [(EN_ATTENTE,'En attente'),(PARTIEL,'Partiellement livré'), (RECEP, 'Réceptionnée')]
 
     fournisseur   = models.ForeignKey(Fournisseur, on_delete=models.PROTECT, related_name='commandes')
     date_commande = models.DateTimeField(auto_now_add=True)
     statut        = models.CharField(max_length=12, choices=STATUT_CHOICES, default=EN_ATTENTE)
     facture_pdf   = models.FileField(upload_to='factures/', blank=True, null=True)
-
+    montant_total = models.DecimalField("Montant total", max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    
+    
     def __str__(self): return f"Commande #{self.pk} - {self.fournisseur.nom}"
 
     def generate_pdf(self):
@@ -62,7 +65,7 @@ class ReceptionAppro(models.Model):
             total_cmd = sum(l.quantite for l in self.commande.lignes.all())
             total_rec = sum(r.quantite_livree for r in self.commande.receptions.all())
             self.commande.statut = (
-                self.commande.LIVRE if total_rec >= total_cmd else self.commande.PARTIEL
+                self.commande.RECEP if total_rec >= total_cmd else self.commande.PARTIEL
             )
             self.commande.save(update_fields=['statut'])
 

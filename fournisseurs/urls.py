@@ -10,10 +10,11 @@ from .views import (
     commande_create,
     commande_update,
     commande_generate_pdf,
+    commande_paiement,
     ReceptionListView,
     ReceptionCreateView,
     PaiementListView,
-    PaiementCreateView
+    #PaiementCreateView
 )
 
 app_name = 'fournisseurs'
@@ -38,5 +39,6 @@ urlpatterns = [
 
     # Paiements fournisseurs
     path('paiements/', PaiementListView.as_view(), name='paiements'),
-    path('paiements/nouveau/', PaiementCreateView.as_view(), name='paiement_create'),
+    #path('paiements/nouveau/', PaiementCreateView.as_view(), name='paiement_create'),
+    path('commandes/<int:pk>/paiement/', commande_paiement,     name='commande_paiement'),
 ]

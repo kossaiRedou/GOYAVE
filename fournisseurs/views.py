@@ -9,6 +9,9 @@ from .forms import (
     FournisseurForm, CommandeFournisseurForm, CommandeLigneFormSet,
     ReceptionApproForm, PaiementFournisseurForm
 )
+from .services import recalc_commande_total
+from django.contrib import messages
+
 
 # Fournisseurs
 class FournisseurListView(ListView):
@@ -55,6 +58,11 @@ class CommandeDetailView(DetailView):
     model = CommandeFournisseur
     template_name = 'fournisseurs/commande_detail.html'
     context_object_name = 'commande'
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['paiement_form'] = PaiementFournisseurForm()
+        return ctx
 
 
 
@@ -63,18 +71,32 @@ def commande_create(request):
     formset = CommandeLigneFormSet(request.POST or None)
     if request.method=='POST' and form.is_valid() and formset.is_valid():
         cmd = form.save()
+        
+        #recalcul du montant total
+        from .services import recalc_commande_total
+        
         formset.instance = cmd
         formset.save()
+        recalc_commande_total(cmd)
         return redirect('fournisseurs:commandes')
     return render(request,'fournisseurs/commande_form.html',{'form':form,'formset':formset})
 
 
 def commande_update(request, pk):
     cmd = get_object_or_404(CommandeFournisseur, pk=pk)
+    
+    if cmd.statut == CommandeFournisseur.RECEP:
+        messages.warning(request, "Cette commande est déjà réceptionnée : modifications interdites.")
+        return redirect('fournisseurs:commande_detail', pk=pk)
+
+
     form = CommandeFournisseurForm(request.POST or None, instance=cmd)
     formset = CommandeLigneFormSet(request.POST or None, instance=cmd)
     if request.method=='POST' and form.is_valid() and formset.is_valid():
-        form.save(); formset.save()
+        form.save()
+        formset.save()
+        from .services import recalc_commande_total
+        recalc_commande_total(cmd)
         return redirect('fournisseurs:commandes')
     return render(request,'fournisseurs/commande_form.html',{'form':form,'formset':formset})
 
@@ -189,8 +211,20 @@ class PaiementListView(ListView):
     context_object_name = 'paiements'
     paginate_by = 8
 
-class PaiementCreateView(CreateView):
-    model = PaiementFournisseur
-    form_class = PaiementFournisseurForm
-    template_name = 'fournisseurs/paiements_form.html'
-    success_url = reverse_lazy('fournisseurs:paiements')
+from django.shortcuts import redirect, get_object_or_404
+
+
+def commande_paiement(request, pk):
+    cmd = get_object_or_404(CommandeFournisseur, pk=pk)
+    if request.method == 'POST':
+        form = PaiementFournisseurForm(request.POST)
+        if form.is_valid():
+            pay = form.save(commit=False)
+            pay.commande = cmd
+            pay.save()
+            # on ne change pas le statut ici
+            messages.success(request, "Paiement enregistré.")
+            # pas de recalc_commande_total ici : on ne touche qu'à montant_total de la commande
+        else:
+            messages.error(request, "Erreur dans le formulaire de paiement.")
+    return redirect('fournisseurs:commande_detail', pk=pk)

@@ -2,7 +2,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Fournisseur, CommandeFournisseur, LigneCommande, ReceptionAppro, PaiementFournisseur
-
+from django.core.exceptions import ValidationError
 class FournisseurForm(forms.ModelForm):
     class Meta:
         model = Fournisseur
@@ -63,5 +63,8 @@ BaseReceptionFormSet = inlineformset_factory(
 
 class PaiementFournisseurForm(forms.ModelForm):
     class Meta:
-        model = PaiementFournisseur
-        fields = ['commande','montant']
+        model  = PaiementFournisseur
+        fields = ['montant']
+        widgets = {
+            'montant': forms.NumberInput(attrs={'step': '0.01'})
+        }
