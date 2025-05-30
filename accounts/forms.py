@@ -10,4 +10,10 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = User
-        fields = ('username', 'email', 'role')
+        fields = ('username', 'email', 'first_name', 'last_name')
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Supprimer le champ password du formulaire de profil
+        if 'password' in self.fields:
+            del self.fields['password']

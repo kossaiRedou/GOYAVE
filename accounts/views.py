@@ -1,8 +1,10 @@
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth import views as auth_views
-from .models import User
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import User, UserAction
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
 class ManagerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -23,9 +25,10 @@ class TeamCreateView(ManagerRequiredMixin, CreateView):
     success_url = reverse_lazy('accounts:team_list')
 
     def form_valid(self, form):
-        # Force role to EMPLOYEE
         form.instance.role = 'EMPLOYEE'
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f"L'employé {form.instance.username} a été créé avec succès.")
+        return response
 
 class TeamUpdateView(ManagerRequiredMixin, UpdateView):
     model = User
@@ -33,15 +36,70 @@ class TeamUpdateView(ManagerRequiredMixin, UpdateView):
     template_name = 'accounts/team_form.html'
     success_url = reverse_lazy('accounts:team_list')
 
-class TeamDeleteView(ManagerRequiredMixin, DeleteView):
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f"Les informations de {form.instance.username} ont été mises à jour.")
+        return response
+
+class TeamToggleStatusView(ManagerRequiredMixin, UpdateView):
     model = User
-    template_name = 'accounts/team_confirm_delete.html'
+    fields = ['is_active']
+    http_method_names = ['post']
     success_url = reverse_lazy('accounts:team_list')
+
+    def form_valid(self, form):
+        user = form.instance
+        user.is_active = not user.is_active
+        response = super().form_valid(form)
+        status = "activé" if user.is_active else "désactivé"
+        messages.success(self.request, f"L'employé {user.username} a été {status} avec succès.")
+        return response
 
 # Auth views reuse Django
 class LoginView(auth_views.LoginView):
     template_name = 'accounts/login.html'
 
 class LogoutView(auth_views.LogoutView):
-    next_page = reverse_lazy('accounts:login')
+    template_name = 'accounts/logout.html'
+
+class UserActionListView(ManagerRequiredMixin, ListView):
+    model = UserAction
+    template_name = 'accounts/user_actions.html'
+    context_object_name = 'actions'
+    paginate_by = 50
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        
+        # Filtres
+        user_id = self.request.GET.get('user')
+        action_type = self.request.GET.get('type')
+        date_from = self.request.GET.get('from')
+        date_to = self.request.GET.get('to')
+
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if action_type:
+            qs = qs.filter(action_type=action_type)
+        if date_from:
+            qs = qs.filter(timestamp__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(timestamp__date__lte=date_to)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['users'] = User.objects.all()
+        context['action_types'] = UserAction.ACTION_TYPES
+        return context
+
+class ProfileView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = CustomUserChangeForm
+    template_name = 'accounts/profile.html'
+    success_url = reverse_lazy('accounts:profile')
+
+    def get_object(self, queryset=None):
+        return self.request.user
 
