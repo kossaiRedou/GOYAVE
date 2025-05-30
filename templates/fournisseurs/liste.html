@@ -10,7 +10,7 @@
   </nav>
 
   <h1>Fournisseurs</h1>
-  <a class="btn btn-success mb-3" href="{% url 'fournisseurs:ajouter' %}">+ Ajouter un fournisseur</a>
+  <a class="btn btn-success mb-3" href="{% url 'fournisseurs:create' %}">+ Ajouter un fournisseur</a>
   <table class="table table-hover">
     <thead>
       <tr>
@@ -27,7 +27,7 @@
         <td>{{ f.email }}</td>
         <td>{{ f.actif|yesno:"Oui,Non" }}</td>
         <td>
-          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:modifier' f.pk %}">Éditer</a>
+          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:update' f.pk %}">Éditer</a>
           <a class="btn btn-sm btn-danger" href="{% url 'fournisseurs:supprimer' f.pk %}">Suppr.</a>
         </td>
       </tr>

@@ -19,6 +19,7 @@
         <tr>
           <th>Produit</th>
           <th>Qté commandée</th>
+          <th>Prix achat</th>
           <th>Quantité à recevoir</th>
           <th>Référence</th>
         </tr>
@@ -32,8 +33,13 @@
           </td>
           <td>{{ form.quantite_commandee.value }}</td>
           <td>
+            {{ form.prix_achat }}
+            {% for err in form.prix_achat.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </td>
+          <td>
             {{ form.quantite_livree }}
-            {# affichage des erreurs sous le champ #}
             {% for err in form.quantite_livree.errors %}
               <div class="text-danger small">{{ err }}</div>
             {% endfor %}
@@ -58,11 +64,11 @@
 <script>
 document.getElementById('reception-form').addEventListener('submit', function(ev){
   let invalid = false;
-  // pour chaque ligne, on vérifie que quantité <= qté commandée
+  
+  // Validation des quantités
   document.querySelectorAll('input[name$="-quantite_livree"]').forEach(function(input){
     const qRecue = parseInt(input.value) || 0;
-    // on remonte la qté commandée à partir de la même ligne
-    const qCmd   = parseInt(
+    const qCmd = parseInt(
       input.closest('tr').querySelector('td:nth-child(2)').innerText
     ) || 0;
     if(qRecue > qCmd){
@@ -72,9 +78,21 @@ document.getElementById('reception-form').addEventListener('submit', function(ev
       input.classList.remove('is-invalid');
     }
   });
+
+  // Validation des prix d'achat
+  document.querySelectorAll('input[name$="-prix_achat"]').forEach(function(input){
+    const prix = parseFloat(input.value) || 0;
+    if(prix <= 0){
+      invalid = true;
+      input.classList.add('is-invalid');
+    } else {
+      input.classList.remove('is-invalid');
+    }
+  });
+
   if(invalid){
     ev.preventDefault();
-    alert("Vous avez saisi une quantité supérieure à la quantité commandée.");
+    alert("Veuillez vérifier les quantités et les prix saisis.");
   }
 });
 </script>

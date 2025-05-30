@@ -24,6 +24,11 @@ from .services import recalc_commande_total
 from django.db.models.deletion import ProtectedError
 from django.db.utils import IntegrityError
 from django.db.transaction import atomic
+from django.http import JsonResponse, FileResponse
+from produits.models import Produit
+from dal import autocomplete
+import os
+from django.conf import settings
 
 
 # Fournisseurs
@@ -84,47 +89,50 @@ def commande_create(request):
     formset = CommandeLigneFormSet(request.POST or None)
     
     if request.method == 'POST':
-        if form.is_valid():
+        if form.is_valid() and formset.is_valid():
             try:
                 with transaction.atomic():
                     # Sauvegarder la commande
                     cmd = form.save()
-                    
+        
                     # Lier le formset à la commande
                     formset.instance = cmd
                     
-                    if formset.is_valid():
-                        # Vérifier qu'il y a au moins une ligne
-                        if not any(
-                            form.cleaned_data and not form.cleaned_data.get('DELETE', False)
-                            for form in formset.forms
-                        ):
-                            raise ValidationError("La commande doit contenir au moins une ligne")
-                        
-                        # Sauvegarder les lignes
-                        formset.save()
-                        
-                        # Recalculer le montant total
-                        recalc_commande_total(cmd)
-                        messages.success(request, "Commande créée avec succès.")
-                        return redirect('fournisseurs:commandes')
-                    else:
-                        # Afficher les erreurs du formset
-                        for form in formset:
-                            for field, errors in form.errors.items():
-                                for error in errors:
-                                    messages.error(request, f"Erreur dans la ligne {form.prefix}: {error}")
-                        raise ValidationError("Erreur dans les lignes de commande")
-            except ValidationError as e:
-                messages.error(request, str(e))
-                # En cas d'erreur de validation, on supprime la commande si elle a été créée
-                if 'cmd' in locals() and cmd.pk:
-                    cmd.delete()
+                    # Vérifier qu'il y a au moins une ligne non supprimée
+                    if not any(
+                        form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+                        for form in formset.forms
+                    ):
+                        cmd.delete()
+                        messages.error(request, "La commande doit contenir au moins une ligne")
+                        return render(request, 'fournisseurs/commande_form.html', {
+                            'form': form,
+                            'formset': formset
+                        })
+                    
+                    # Sauvegarder les lignes
+                    formset.save()
+                    
+                    # Recalculer le montant total
+                    recalc_commande_total(cmd)
+                    messages.success(request, "Commande créée avec succès.")
+                    return redirect('fournisseurs:commandes')
+                    
             except Exception as e:
-                messages.error(request, "Une erreur est survenue lors de la création de la commande")
-                # En cas d'erreur, on supprime la commande si elle a été créée
-                if 'cmd' in locals() and cmd.pk:
-                    cmd.delete()
+                messages.error(request, f"Erreur : {str(e)}")
+                import traceback
+                print(traceback.format_exc())
+        else:
+            # Afficher les erreurs du formset
+            for form in formset:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"Erreur dans la ligne {form.prefix}: {error}")
+            
+            # Afficher les erreurs du formulaire principal
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"Erreur dans le champ {field}: {error}")
     
     return render(request, 'fournisseurs/commande_form.html', {
         'form': form,
@@ -155,12 +163,32 @@ def commande_generate_pdf(request, pk):
     """
     Vue appelée par le bouton "Générer PDF" :
     - Récupère la commande
-    - Appelle la méthode generate_pdf() du modèle
-    - Redirige vers la page de détail de la commande
+    - Génère le PDF
+    - Envoie directement le fichier au navigateur
     """
-    cmd = get_object_or_404(CommandeFournisseur, pk=pk)
-    cmd.generate_pdf()
-    return redirect('fournisseurs:commande_detail', pk=pk)
+    try:
+        cmd = get_object_or_404(CommandeFournisseur, pk=pk)
+        pdf_path = cmd.generate_pdf()
+        
+        # Ouvrir le fichier PDF
+        pdf_file = open(os.path.join(settings.MEDIA_ROOT, pdf_path), 'rb')
+        
+        # Créer la réponse avec le fichier
+        response = FileResponse(pdf_file)
+        
+        # Définir les en-têtes pour forcer le téléchargement
+        filename = f"commande_{cmd.pk}.pdf"
+        response['Content-Type'] = 'application/pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        import traceback
+        print("Erreur de génération PDF :")
+        print(traceback.format_exc())
+        return redirect('fournisseurs:commande_detail', pk=pk)
 
 
 
@@ -192,6 +220,7 @@ class ReceptionCreateView(View):
             initial.append({
                 'produit': lg.produit.pk,
                 'quantite_commandee': lg.quantite,
+                'prix_achat': lg.prix_achat,  # Ajout du prix d'achat de la ligne
                 'produit_label': str(lg.produit),  # pour afficher le nom
             })
 
@@ -224,13 +253,30 @@ class ReceptionCreateView(View):
         cmd = get_object_or_404(CommandeFournisseur, pk=pk)
         formset = self._make_formset(cmd, post_data=request.POST)
         if formset.is_valid():
-            formset.save()
-            return redirect('fournisseurs:receptions')
-        # si invalide, on ré‐affiche avec le même initial
-        return render(request, self.template_name, {
-            'commande': cmd,
-            'formset': formset,
-        })
+            try:
+                with transaction.atomic():
+                    # Sauvegarder les réceptions
+                    formset.save()
+                    
+                    # Mettre à jour les prix d'achat des lignes de commande si modifiés
+                    for form in formset:
+                        if form.cleaned_data.get('prix_achat'):
+                            ligne = cmd.lignes.get(produit=form.cleaned_data['produit'])
+                            if ligne.prix_achat != form.cleaned_data['prix_achat']:
+                                ligne.prix_achat = form.cleaned_data['prix_achat']
+                                ligne.save()
+                    
+                    # Recalculer le montant total de la commande
+                    from .services import recalc_commande_total
+                    recalc_commande_total(cmd)
+                    
+                    return redirect('fournisseurs:receptions')
+            except Exception as e:
+                messages.error(request, f"Erreur lors de la sauvegarde : {str(e)}")
+                return render(request, self.template_name, {
+                    'commande': cmd,
+                    'formset': formset,
+                })
 
         
         
@@ -278,3 +324,33 @@ def commande_paiement(request, pk):
         else:
             messages.error(request, "Erreur dans le formulaire de paiement.")
     return redirect('fournisseurs:commande_detail', pk=pk)
+
+def search_products(request):
+    """Vue pour rechercher des produits et retourner leurs informations en JSON"""
+    query = request.GET.get('q', '')
+    if query.isdigit():
+        # Si q est un ID, chercher directement le produit
+        products = Produit.objects.filter(id=query)
+    else:
+        # Sinon chercher par nom
+        products = Produit.objects.filter(nom__icontains=query)
+    
+    data = [{
+        'id': p.id,
+        'nom': p.nom,
+        'prix_achat': float(p.prix_achat) if p.prix_achat else 0
+    } for p in products[:10]]  # Limiter à 10 résultats
+    
+    return JsonResponse(data, safe=False)
+
+class ProduitAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Produit.objects.none()
+
+        qs = Produit.objects.all()
+
+        if self.q:
+            qs = qs.filter(nom__icontains=self.q)
+
+        return qs[:10]  # Limiter à 10 résultats

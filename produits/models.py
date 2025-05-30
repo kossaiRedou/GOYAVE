@@ -2,6 +2,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+from django.core.exceptions import ValidationError
 
 class Monnaie(models.TextChoices):
     CFA = 'CFA', 'Franc CFA'
@@ -26,6 +27,7 @@ class TauxChange(models.Model):
 class Produit(models.Model):
     nom = models.CharField('Nom', max_length=255)
     code = models.CharField('Code', max_length=50, unique=True)
+    prix_achat = models.DecimalField('Prix d\'achat', max_digits=10, decimal_places=2)
     prix_vente = models.DecimalField('Prix de vente', max_digits=10, decimal_places=2)
     monnaie = models.CharField('Devise', max_length=3, choices=Monnaie.choices, default=Monnaie.CFA)
     image = models.ImageField('Image', upload_to='produits/', blank=True, null=True)
@@ -91,3 +93,26 @@ class Produit(models.Model):
             return self.prix_vente * taux.taux
         except TauxChange.DoesNotExist:
             return None
+
+    @property
+    def pourcentage_marge(self):
+        """Calcule le pourcentage de marge"""
+        if self.prix_vente and self.prix_achat and self.prix_achat > 0:
+            return ((self.prix_vente - self.prix_achat) / self.prix_achat) * 100
+        return None
+
+    @property
+    def marge(self):
+        """Calcule la marge entre le prix de vente et le prix d'achat"""
+        if self.prix_vente and self.prix_achat:
+            return self.prix_vente - self.prix_achat
+        return None
+
+    def clean(self):
+        super().clean()
+        if self.prix_achat is not None and self.prix_achat < 0:
+            raise ValidationError({'prix_achat': "Le prix d'achat ne peut pas être négatif"})
+        if self.prix_vente is not None and self.prix_vente < 0:
+            raise ValidationError({'prix_vente': "Le prix de vente ne peut pas être négatif"})
+        if self.prix_achat is not None and self.prix_vente is not None and self.prix_achat > self.prix_vente:
+            raise ValidationError("Le prix d'achat ne peut pas être supérieur au prix de vente")

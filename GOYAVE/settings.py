@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import environ
 import os
@@ -29,6 +28,8 @@ LOW_STOCK_THRESHOLD = env.int('LOW_STOCK_THRESHOLD', default=5)
 # Application definition
 
 INSTALLED_APPS = [
+    'dal',
+    'dal_select2',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
