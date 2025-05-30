@@ -1,0 +1,95 @@
+/* Styles pour les alertes */
+.alert-item {
+    transition: all 0.3s ease;
+}
+
+.alert-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.alert-item .btn-group {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.alert-item:hover .btn-group {
+    opacity: 1;
+}
+
+/* Couleurs personnalisées pour les types d'alertes */
+.text-stock {
+    color: #ffc107;
+}
+
+.text-expiration {
+    color: #dc3545;
+}
+
+.text-payment {
+    color: #dc3545;
+}
+
+.text-order {
+    color: #0dcaf0;
+}
+
+/* Badge de notification */
+.badge-notification {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+}
+
+/* Animation pour les nouvelles alertes */
+@keyframes newAlert {
+    from {
+        background-color: rgba(255, 193, 7, 0.2);
+    }
+    to {
+        background-color: transparent;
+    }
+}
+
+.alert-item.new {
+    animation: newAlert 2s ease-out;
+}
+
+/* Style pour les alertes expirées */
+.alert-item.expired {
+    opacity: 0.7;
+}
+
+/* Styles pour les boutons d'action */
+.alert-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Styles pour la pagination */
+.pagination-alerts {
+    margin-top: 1rem;
+}
+
+.pagination-alerts .page-link {
+    padding: 0.375rem 0.75rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .alert-item .btn-group {
+        opacity: 1;
+    }
+    
+    .alert-item .btn {
+        padding: 0.25rem;
+    }
+    
+    .alert-item .btn i {
+        margin: 0;
+    }
+    
+    .alert-item .btn span {
+        display: none;
+    }
+} 
