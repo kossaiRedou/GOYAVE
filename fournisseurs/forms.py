@@ -1,8 +1,8 @@
-
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Fournisseur, CommandeFournisseur, LigneCommande, ReceptionAppro, PaiementFournisseur
 from django.core.exceptions import ValidationError
+
 class FournisseurForm(forms.ModelForm):
     class Meta:
         model = Fournisseur
@@ -11,7 +11,20 @@ class FournisseurForm(forms.ModelForm):
 class CommandeFournisseurForm(forms.ModelForm):
     class Meta:
         model = CommandeFournisseur
-        fields = ['fournisseur','statut']
+        fields = ['fournisseur']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fournisseur'].empty_label = "Sélectionnez un fournisseur"
+        self.fields['fournisseur'].queryset = Fournisseur.objects.filter(actif=True)
+
+    def clean_fournisseur(self):
+        fournisseur = self.cleaned_data.get('fournisseur')
+        if not fournisseur:
+            raise ValidationError("Le fournisseur est obligatoire")
+        if not fournisseur.actif:
+            raise ValidationError("Ce fournisseur n'est plus actif")
+        return fournisseur
 
 class LigneCommandeForm(forms.ModelForm):
     class Meta:
@@ -42,7 +55,7 @@ class ReceptionApproForm(forms.ModelForm):
         required=False,
         disabled=True,
     )
-    # On cache le champ produit en HiddenInput pour qu’il soit reposté
+    # On cache le champ produit en HiddenInput pour qu'il soit reposté
     produit = forms.ModelChoiceField(
         queryset=Produit.objects.all(),
         widget=forms.HiddenInput()

@@ -8,50 +8,118 @@
     <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
   </nav>
 
-  <h1>Commandes fournisseurs</h1>
-  <a class="btn btn-success mb-3" href="{% url 'fournisseurs:commande_create' %}">+ Nouvelle commande</a>
-  <table class="table table-hover">
-    <thead>
-      <tr><th>#</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
-    </thead>
-    <tbody>
-      {% for cmd in commandes %}
-      <tr>
-        <td>
-          <a class="btn btn-sm btn-primary" href="{% url 'fournisseurs:commande_detail' cmd.pk %}">{{ cmd.pk }}</a>
-        </td>
-        <td>{{ cmd.fournisseur.nom }}</td>
-        <td>{{ cmd.date_commande|date:"d/m/Y H:i" }}</td>
-        <td>{{ cmd.get_statut_display }}</td>
-        <td>
-          {% if cmd.statut != 'RECEPTIONNEE' %}
-            <a class="btn btn-primary"
-              href="{% url 'fournisseurs:commande_update' cmd.pk %}">
-              Modifier
-            </a>
-          {% else %}
-            <button class="btn btn-primary" disabled>
-              Modifier
-            </button>
-          {% endif %}
-        </td>
-        <td>
-          {% if cmd.statut != 'RECEPTIONNEE' %}
-            <a class="btn btn-primary"
-              href="{% url 'fournisseurs:reception_commande' cmd.pk %}">
-              Réceptionner
-            </a>
-          {% else %}
-            <button class="btn btn-primary" disabled>
-              Réceptionner
-            </button>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5">Aucune commande.</td></tr>
+  {% if messages %}
+  <div class="messages mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Commandes fournisseurs</h1>
+    <a class="btn btn-success" href="{% url 'fournisseurs:commande_create' %}">
+      <i class="fas fa-plus"></i> Nouvelle commande
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fournisseur</th>
+              <th>Date</th>
+              <th>Statut</th>
+              <th>Montant</th>
+              <th>Payé</th>
+              <th>Reste</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cmd in commandes %}
+            <tr>
+              <td>
+                <a href="{% url 'fournisseurs:commande_detail' cmd.pk %}" class="text-decoration-none">
+                  {{ cmd.pk }}
+                </a>
+              </td>
+              <td>{{ cmd.fournisseur.nom }}</td>
+              <td>{{ cmd.date_commande|date:"d/m/Y H:i" }}</td>
+              <td>
+                <span class="badge {% if cmd.statut == 'EN_ATTENTE' %}bg-warning{% elif cmd.statut == 'PARTIEL' %}bg-info{% else %}bg-success{% endif %}">
+                  {{ cmd.get_statut_display }}
+                </span>
+              </td>
+              <td class="text-end">{{ cmd.montant_total|floatformat:2 }} €</td>
+              <td class="text-end">{{ cmd.total_paye|floatformat:2 }} €</td>
+              <td class="text-end">{{ cmd.reste_a_payer|floatformat:2 }} €</td>
+              <td>
+                <div class="btn-group">
+                  <a href="{% url 'fournisseurs:commande_detail' cmd.pk %}" 
+                     class="btn btn-sm btn-outline-primary" 
+                     title="Détails">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  
+                  {% if cmd.statut != 'RECEPTIONNEE' %}
+                  <a href="{% url 'fournisseurs:commande_update' cmd.pk %}" 
+                     class="btn btn-sm btn-outline-secondary"
+                     title="Modifier">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  
+                  <a href="{% url 'fournisseurs:reception_commande' cmd.pk %}"
+                     class="btn btn-sm btn-outline-success"
+                     title="Réceptionner">
+                    <i class="fas fa-truck"></i>
+                  </a>
+                  {% endif %}
+                  
+                  <a href="{% url 'fournisseurs:commande_generate_pdf' cmd.pk %}"
+                     class="btn btn-sm btn-outline-info"
+                     title="Générer PDF">
+                    <i class="fas fa-file-pdf"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center">Aucune commande enregistrée.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if is_paginated %}
+  <nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Précédent</a>
+      </li>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+      <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+      </li>
       {% endfor %}
-    </tbody>
-  </table>
+
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Suivant</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}

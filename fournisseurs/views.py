@@ -1,16 +1,29 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django import forms
-from django.views.generic  import View
+from django.views.generic import View, ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.forms import inlineformset_factory
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
-from .models import Fournisseur, CommandeFournisseur, ReceptionAppro, PaiementFournisseur
+from django.contrib import messages
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from .models import (
+    Fournisseur, 
+    CommandeFournisseur, 
+    LigneCommande, 
+    ReceptionAppro, 
+    PaiementFournisseur
+)
 from .forms import (
-    FournisseurForm, CommandeFournisseurForm, CommandeLigneFormSet,
-    ReceptionApproForm, PaiementFournisseurForm
+    FournisseurForm, 
+    CommandeFournisseurForm, 
+    CommandeLigneFormSet,
+    ReceptionApproForm, 
+    PaiementFournisseurForm
 )
 from .services import recalc_commande_total
-from django.contrib import messages
+from django.db.models.deletion import ProtectedError
+from django.db.utils import IntegrityError
+from django.db.transaction import atomic
 
 
 # Fournisseurs
@@ -69,17 +82,54 @@ class CommandeDetailView(DetailView):
 def commande_create(request):
     form = CommandeFournisseurForm(request.POST or None)
     formset = CommandeLigneFormSet(request.POST or None)
-    if request.method=='POST' and form.is_valid() and formset.is_valid():
-        cmd = form.save()
-        
-        #recalcul du montant total
-        from .services import recalc_commande_total
-        
-        formset.instance = cmd
-        formset.save()
-        recalc_commande_total(cmd)
-        return redirect('fournisseurs:commandes')
-    return render(request,'fournisseurs/commande_form.html',{'form':form,'formset':formset})
+    
+    if request.method == 'POST':
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Sauvegarder la commande
+                    cmd = form.save()
+                    
+                    # Lier le formset à la commande
+                    formset.instance = cmd
+                    
+                    if formset.is_valid():
+                        # Vérifier qu'il y a au moins une ligne
+                        if not any(
+                            form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+                            for form in formset.forms
+                        ):
+                            raise ValidationError("La commande doit contenir au moins une ligne")
+                        
+                        # Sauvegarder les lignes
+                        formset.save()
+                        
+                        # Recalculer le montant total
+                        recalc_commande_total(cmd)
+                        messages.success(request, "Commande créée avec succès.")
+                        return redirect('fournisseurs:commandes')
+                    else:
+                        # Afficher les erreurs du formset
+                        for form in formset:
+                            for field, errors in form.errors.items():
+                                for error in errors:
+                                    messages.error(request, f"Erreur dans la ligne {form.prefix}: {error}")
+                        raise ValidationError("Erreur dans les lignes de commande")
+            except ValidationError as e:
+                messages.error(request, str(e))
+                # En cas d'erreur de validation, on supprime la commande si elle a été créée
+                if 'cmd' in locals() and cmd.pk:
+                    cmd.delete()
+            except Exception as e:
+                messages.error(request, "Une erreur est survenue lors de la création de la commande")
+                # En cas d'erreur, on supprime la commande si elle a été créée
+                if 'cmd' in locals() and cmd.pk:
+                    cmd.delete()
+    
+    return render(request, 'fournisseurs/commande_form.html', {
+        'form': form,
+        'formset': formset
+    })
 
 
 def commande_update(request, pk):
@@ -103,7 +153,7 @@ def commande_update(request, pk):
 
 def commande_generate_pdf(request, pk):
     """
-    Vue appelée par le bouton “Générer PDF” :
+    Vue appelée par le bouton "Générer PDF" :
     - Récupère la commande
     - Appelle la méthode generate_pdf() du modèle
     - Redirige vers la page de détail de la commande

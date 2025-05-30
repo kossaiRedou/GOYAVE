@@ -1,143 +1,233 @@
 {% extends 'base.html' %}
 {% block title %}Commande #{{ commande.pk }}{% endblock %}
 {% block content %}
-<nav class="mb-4">
-  <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
-  <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
-  <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
-  <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
-</nav>
-
 <div class="container py-4">
-  <h1>Commande #{{ commande.pk }}</h1>
+  <nav class="mb-4">
+    <a class="me-3" href="{% url 'fournisseurs:liste' %}">Fournisseurs</a>
+    <a class="me-3" href="{% url 'fournisseurs:commandes' %}">Commandes</a>
+    <a class="me-3" href="{% url 'fournisseurs:receptions' %}">Réceptions</a>
+    <a href="{% url 'fournisseurs:paiements' %}">Paiements</a>
+  </nav>
 
-  <dl class="row">
-    <dt class="col-sm-3">Fournisseur</dt>
-    <dd class="col-sm-9">
-      <a href="{% url 'fournisseurs:detail' commande.fournisseur.pk %}">
-        {{ commande.fournisseur.nom }}
+  {% if messages %}
+  <div class="messages mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Commande #{{ commande.pk }}</h1>
+    <div class="btn-group">
+      {% if commande.statut != 'RECEPTIONNEE' %}
+      <a href="{% url 'fournisseurs:commande_update' commande.pk %}" 
+         class="btn btn-outline-secondary">
+        <i class="fas fa-edit"></i> Modifier
       </a>
-    </dd>
-
-    <dt class="col-sm-3">Date</dt>
-    <dd class="col-sm-9">{{ commande.date_commande|date:"d/m/Y H:i" }}</dd>
-
-    <dt class="col-sm-3">Statut</dt>
-    <dd class="col-sm-9">{{ commande.get_statut_display }}</dd>
-
-    <dt class="col-sm-3">Montant total</dt>
-    <dd class="col-sm-9">{{ commande.montant_total }}</dd>
-  </dl>
-
-  <h2>Lignes de commande</h2>
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>Produit</th>
-        <th>Qté</th>
-        <th>PU achat</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for lg in commande.lignes.all %}
-      <tr>
-        <td>{{ lg.produit.nom }}</td>
-        <td>{{ lg.quantite }}</td>
-        <td>{{ lg.prix_achat }}</td>
-        {# widthratio permet de faire : quantite * prix_achat #}
-        <td>
-          {% widthratio lg.quantite 1 lg.prix_achat %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4">Aucune ligne de commande.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h2>Réceptions</h2>
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Produit</th>
-        <th>Qté reçue</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for rec in commande.receptions.all %}
-      <tr>
-        <td>{{ rec.date_reception|date:"d/m/Y H:i" }}</td>
-        <td>{{ rec.produit.nom }}</td>
-        <td>{{ rec.quantite_livree }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="3">Aucune réception enregistrée.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h2>Paiements</h2>
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Montant</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for pay in commande.paiements.all %}
-      <tr>
-        <td>{{ pay.date_paiement|date:"d/m/Y H:i" }}</td>
-        <td>{{ pay.montant }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="2">Aucun paiement.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h2>Ajouter un paiement</h2>
-  <form method="post"
-        action="{% url 'fournisseurs:commande_paiement' commande.pk %}">
-    {% csrf_token %}
-    <div class="input-group mb-3" style="max-width:300px">
-      {{ paiement_form.montant }}
-      <button class="btn btn-outline-primary" type="submit">
-        Enregistrer paiement
-      </button>
+      <a href="{% url 'fournisseurs:reception_commande' commande.pk %}"
+         class="btn btn-outline-success">
+        <i class="fas fa-truck"></i> Réceptionner
+      </a>
+      {% endif %}
+      <a href="{% url 'fournisseurs:commande_generate_pdf' commande.pk %}"
+         class="btn btn-outline-info">
+        <i class="fas fa-file-pdf"></i> Générer PDF
+      </a>
     </div>
-  </form>
+  </div>
 
-  <div class="mt-4">
-    {% if commande.statut != 'RECEPTIONNEE' %}
-      <a class="btn btn-primary"
-         href="{% url 'fournisseurs:commande_update' commande.pk %}">
-        Modifier
-      </a>
-    {% else %}
-      <button class="btn btn-primary" disabled>
-        Modifier
-      </button>
-    {% endif %}
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Informations générales</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-4">Fournisseur</dt>
+            <dd class="col-sm-8">{{ commande.fournisseur.nom }}</dd>
 
-    <a class="btn btn-success"
-       href="{% url 'fournisseurs:commande_generate_pdf' commande.pk %}">
-      Générer PDF
-    </a>
+            <dt class="col-sm-4">Date</dt>
+            <dd class="col-sm-8">{{ commande.date_commande|date:"d/m/Y H:i" }}</dd>
 
-    {% if commande.facture_pdf %}
-      <a class="btn btn-primary"
-         href="{{ commande.facture_pdf.url }}"
-         target="_blank">
-        Télécharger la dernière facture
-      </a>
-    {% endif %}
+            <dt class="col-sm-4">Statut</dt>
+            <dd class="col-sm-8">
+              <span class="badge {% if commande.statut == 'EN_ATTENTE' %}bg-warning{% elif commande.statut == 'PARTIEL' %}bg-info{% else %}bg-success{% endif %}">
+                {{ commande.get_statut_display }}
+              </span>
+            </dd>
 
-    <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">
-      Retour aux commandes
-    </a>
+            <dt class="col-sm-4">Montant total</dt>
+            <dd class="col-sm-8">{{ commande.montant_total|floatformat:2 }} €</dd>
+
+            <dt class="col-sm-4">Total payé</dt>
+            <dd class="col-sm-8">{{ commande.total_paye|floatformat:2 }} €</dd>
+
+            <dt class="col-sm-4">Reste à payer</dt>
+            <dd class="col-sm-8">{{ commande.reste_a_payer|floatformat:2 }} €</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Nouveau paiement</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{% url 'fournisseurs:commande_paiement' commande.pk %}" class="row g-3">
+            {% csrf_token %}
+            <div class="col-sm-8">
+              {{ paiement_form.montant }}
+              {% if paiement_form.montant.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in paiement_form.montant.errors %}
+                {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-sm-4">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-euro-sign"></i> Payer
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Lignes de commande</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th class="text-end">Quantité</th>
+                  <th class="text-end">Prix unitaire</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-end">Reçu</th>
+                  <th class="text-end">Reste</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in commande.lignes.all %}
+                <tr>
+                  <td>{{ ligne.produit.nom }}</td>
+                  <td class="text-end">{{ ligne.quantite }}</td>
+                  <td class="text-end">{{ ligne.prix_achat|floatformat:2 }} €</td>
+                  <td class="text-end">{{ ligne.montant_total|floatformat:2 }} €</td>
+                  <td class="text-end">{{ ligne.quantite_recue }}</td>
+                  <td class="text-end">{{ ligne.reste_a_livrer }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="3">Total</th>
+                  <th class="text-end">{{ commande.montant_total|floatformat:2 }} €</th>
+                  <th colspan="2"></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Réceptions</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Produit</th>
+                  <th class="text-end">Quantité reçue</th>
+                  <th>Référence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for reception in commande.receptions.all %}
+                <tr>
+                  <td>{{ reception.date_reception|date:"d/m/Y H:i" }}</td>
+                  <td>{{ reception.produit.nom }}</td>
+                  <td class="text-end">{{ reception.quantite_livree }}</td>
+                  <td>{{ reception.reference }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center">Aucune réception enregistrée</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Paiements</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th class="text-end">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for paiement in commande.paiements.all %}
+                <tr>
+                  <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
+                  <td class="text-end">{{ paiement.montant|floatformat:2 }} €</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="2" class="text-center">Aucun paiement enregistré</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Total payé</th>
+                  <th class="text-end">{{ commande.total_paye|floatformat:2 }} €</th>
+                </tr>
+                <tr>
+                  <th>Reste à payer</th>
+                  <th class="text-end">{{ commande.reste_a_payer|floatformat:2 }} €</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+  // Améliorer l'apparence des champs de formulaire avec Bootstrap
+  document.querySelectorAll('input[type="number"]').forEach(function(el) {
+    el.classList.add('form-control');
+    el.setAttribute('step', '0.01');
+    el.setAttribute('min', '0');
+  });
+</script>
+{% endblock %}
 {% endblock %}

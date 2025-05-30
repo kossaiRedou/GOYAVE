@@ -19,82 +19,123 @@
     {% endif %}
   </h1>
 
+  {% if messages %}
+  <div class="messages mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <form method="post" novalidate>
     {% csrf_token %}
 
-```
-{{ form.as_p }}
-
-<h2>Lignes de commande</h2>
-
-{% if formset.non_form_errors %}
-  <div class="alert alert-danger">
-    {{ formset.non_form_errors }}
-  </div>
-{% endif %}
-
-{{ formset.management_form }}
-<table class="table table-hover">
-  <thead>
-    <tr>
-      <th>Produit</th>
-      <th>Quantité</th>
-      <th>Prix achat</th>
-      <th>Supprimer</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for fs in formset %}
-      {% if fs.errors %}
-        <tr>
-          <td colspan="4">
-            <ul class="text-danger">
-              {% for error in fs.non_field_errors %}
-                <li>{{ error }}</li>
-              {% endfor %}
-              {% for field in fs.visible_fields %}
-                {% for error in field.errors %}
-                  <li>{{ field.label }} : {{ error }}</li>
-                {% endfor %}
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
-      {% endif %}
-      <tr class="formset_row">
-        {% for hidden in fs.hidden_fields %}
-          {{ hidden }}
+    {# Fournisseur #}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Informations générales</h5>
+      </div>
+      <div class="card-body">
+        {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+          <div class="invalid-feedback d-block">
+            {% for error in field.errors %}
+            {{ error }}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
         {% endfor %}
-        <td>{{ fs.produit }}</td>
-        <td>{{ fs.quantite }}</td>
-        <td>{{ fs.prix_achat }}</td>
-        <td>{{ fs.DELETE }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
+      </div>
+    </div>
 
-<button type="submit" class="btn btn-primary">
-  {% if form.instance.pk %}Enregistrer{% else %}Créer{% endif %}
-</button>
-<a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">Annuler</a>
-```
+    {# Lignes de commande #}
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Lignes de commande</h5>
+      </div>
+      <div class="card-body">
+        {% if formset.non_form_errors %}
+          <div class="alert alert-danger">
+            {{ formset.non_form_errors }}
+          </div>
+        {% endif %}
 
+        {{ formset.management_form }}
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Quantité</th>
+              <th>Prix achat</th>
+              <th>Supprimer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fs in formset %}
+              {% if fs.errors %}
+                <tr>
+                  <td colspan="4">
+                    <ul class="text-danger">
+                      {% for error in fs.non_field_errors %}
+                        <li>{{ error }}</li>
+                      {% endfor %}
+                      {% for field in fs.visible_fields %}
+                        {% for error in field.errors %}
+                          <li>{{ field.label }} : {{ error }}</li>
+                        {% endfor %}
+                      {% endfor %}
+                    </ul>
+                  </td>
+                </tr>
+              {% endif %}
+              <tr class="formset_row">
+                {% for hidden in fs.hidden_fields %}
+                  {{ hidden }}
+                {% endfor %}
+                <td>{{ fs.produit }}</td>
+                <td>{{ fs.quantite }}</td>
+                <td>{{ fs.prix_achat }}</td>
+                <td>{{ fs.DELETE }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary">
+        {% if form.instance.pk %}Enregistrer{% else %}Créer{% endif %}
+      </button>
+      <a class="btn btn-secondary" href="{% url 'fournisseurs:commandes' %}">Annuler</a>
+    </div>
   </form>
+</div>
 
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'formset/jquery.formset.js' %}"></script>
 
-  <!-- ============================ block js ================================== -->
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script>
+  // Améliorer l'apparence des champs de formulaire avec Bootstrap
+  $(document).ready(function() {
+    // Ajouter les classes Bootstrap aux champs
+    $('select, input[type="number"], input[type="text"]').addClass('form-control');
+    $('input[type="checkbox"]').addClass('form-check-input');
 
-  <script src="{% static 'formset/jquery.formset.js' %}"></script>
-
-  <script>
+    // Initialiser le formset
     $('.formset_row').formset({
       prefix: '{{ formset.prefix }}',
-      addText: 'Ajouter une ligne',
-      deleteText: 'Supprimer',
+      addText: '<i class="fas fa-plus"></i> Ajouter une ligne',
+      deleteText: '<i class="fas fa-trash"></i>',
+      addCssClass: 'btn btn-success btn-sm mb-3',
+      deleteCssClass: 'btn btn-danger btn-sm',
       formCssClass: 'formset_row'
     });
-  </script>
-</div>
+  });
+</script>
+
 {% endblock %}
