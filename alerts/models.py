@@ -3,6 +3,12 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from datetime import timedelta
+from django.conf import settings
+from django.db.models import Sum
+
+from produits.models import Produit
+from ventes.models import Vente
+from fournisseurs.models import CommandeFournisseur
 
 class Alert(models.Model):
     # Types d'alertes
@@ -78,6 +84,42 @@ class Alert(models.Model):
         if self.expires_at:
             return timezone.now() > self.expires_at
         return False
+
+    @property
+    def is_valid(self):
+        """Vérifie si l'alerte est toujours valide selon son type"""
+        if self.is_read or self.is_expired:
+            return False
+
+        if self.type == self.STOCK_LOW:
+            if isinstance(self.target, Produit):
+                seuil = getattr(settings, 'LOW_STOCK_THRESHOLD', 5)
+                return self.target.stock <= seuil
+        
+        elif self.type == self.PAYMENT_LATE_CLIENT:
+            if isinstance(self.target, Vente):
+                total_paye = self.target.paiements.aggregate(total=models.Sum('montant'))['total'] or 0
+                return total_paye < self.target.montant_total
+        
+        elif self.type == self.ORDER_PENDING:
+            if isinstance(self.target, CommandeFournisseur):
+                return self.target.statut == CommandeFournisseur.EN_ATTENTE
+
+        return True  # Par défaut, on considère l'alerte comme valide
+
+    def check_and_clean(self):
+        """Vérifie si l'alerte est toujours valide et la marque comme lue si ce n'est plus le cas"""
+        if not self.is_valid:
+            self.is_read = True
+            self.save(update_fields=['is_read'])
+            return True
+        return False
+
+    @classmethod
+    def check_and_clean_all(cls):
+        """Vérifie et nettoie toutes les alertes non lues"""
+        for alert in cls.objects.filter(is_read=False):
+            alert.check_and_clean()
 
     def mark_as_read(self):
         """Marque l'alerte comme lue"""

@@ -1,162 +1,114 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Alertes - {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/alerts.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">
-      <i class="fas fa-bell me-2"></i>Alertes
-    </h1>
-  </div>
-
-  {% if messages %}
-  <div class="messages mb-4">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-bell me-2"></i>Alertes
+        </h1>
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
 
-  <div class="card mb-4">
-    <div class="card-body">
-      <form method="get" class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Type d'alerte</label>
-          <select name="type" class="form-select">
-            <option value="">Tous les types</option>
-            {% for type_code, type_label in alert_types %}
-            <option value="{{ type_code }}" {% if type_code == current_type %}selected{% endif %}>
-              {{ type_label }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Statut</label>
-          <select name="status" class="form-select">
-            <option value="">Tous les statuts</option>
-            <option value="unread" {% if current_status == 'unread' %}selected{% endif %}>Non lues</option>
-            <option value="read" {% if current_status == 'read' %}selected{% endif %}>Lues</option>
-            <option value="expired" {% if current_status == 'expired' %}selected{% endif %}>Expirées</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Date début</label>
-          <input type="date" name="from" class="form-control" value="{{ request.GET.from }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Date fin</label>
-          <input type="date" name="to" class="form-control" value="{{ request.GET.to }}">
-        </div>
-        <div class="col-12">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-filter me-2"></i>Filtrer
-          </button>
-          <a href="{% url 'alerts:liste' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-times me-2"></i>Réinitialiser
-          </a>
-        </div>
-      </form>
-    </div>
-  </div>
+    {% include 'alerts/partials/_filters.html' %}
 
-  <form method="post">
-    {% csrf_token %}
-    <div class="card">
-      <div class="card-header bg-white py-3">
-        <div class="row align-items-center">
-          <div class="col">
-            <div class="btn-group">
-              <button type="submit" name="action" value="mark_read" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-check me-2"></i>Marquer comme lu
-              </button>
-              <button type="submit" name="action" value="mark_unread" class="btn btn-outline-warning btn-sm">
-                <i class="fas fa-undo me-2"></i>Marquer comme non lu
-              </button>
-              <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">
-                <i class="fas fa-trash me-2"></i>Supprimer
-              </button>
+    <form method="post">
+        {% csrf_token %}
+        <div class="card">
+            {% include 'alerts/partials/_bulk_actions.html' %}
+
+            <div class="list-group list-group-flush">
+                {% for alert in alerts %}
+                    {% include 'alerts/partials/_alert_item.html' with alert=alert %}
+                {% empty %}
+                <div class="list-group-item py-4 text-center text-muted">
+                    <i class="fas fa-bell-slash fa-2x mb-3"></i>
+                    <p class="mb-0">Aucune alerte à afficher</p>
+                </div>
+                {% endfor %}
             </div>
-          </div>
-          <div class="col text-end">
-            <small class="text-muted">{{ page_obj.paginator.count }} alerte(s)</small>
-          </div>
         </div>
-      </div>
+    </form>
 
-      <div class="list-group list-group-flush">
-        {% for alert in alerts %}
-        <div class="list-group-item {% if not alert.is_read %}list-group-item-{{ alert.color }}{% endif %}">
-          <div class="row align-items-center">
-            <div class="col-auto">
-              <input type="checkbox" name="alert_ids" value="{{ alert.id }}" class="form-check-input">
-            </div>
-            <div class="col">
-              <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">
-                  <i class="fas fa-{% if alert.type == 'STOCK_LOW' %}box{% elif alert.type == 'EXPIRATION' %}calendar-times{% elif alert.type == 'PAYMENT_LATE_CLIENT' %}money-bill-wave{% elif alert.type == 'ORDER_PENDING' %}clock{% endif %} me-2"></i>
-                  {{ alert.message }}
-                </h6>
-                <small class="text-muted" title="{{ alert.created_at|date:'d/m/Y H:i' }}">
-                  {{ alert.created_at|timesince }}
-                </small>
-              </div>
-              <div class="mt-1">
-                <span class="badge bg-{{ alert.color }}">{{ alert.get_type_display }}</span>
-                {% if alert.target %}
-                <a href="{{ alert.target.get_absolute_url }}" class="text-decoration-none ms-2">
-                  <i class="fas fa-external-link-alt me-1"></i>Voir l'élément concerné
-                </a>
-                {% endif %}
-                {% if alert.expires_at %}
-                <small class="text-muted ms-2">
-                  <i class="fas fa-clock me-1"></i>Expire le {{ alert.expires_at|date:'d/m/Y' }}
-                </small>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-        {% empty %}
-        <div class="list-group-item py-4 text-center text-muted">
-          <i class="fas fa-bell-slash fa-2x mb-3"></i>
-          <p class="mb-0">Aucune alerte à afficher</p>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </form>
-
-  {% if is_paginated %}
-  <nav class="mt-4">
-    <ul class="pagination justify-content-center">
-      {% if page_obj.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
-          <i class="fas fa-chevron-left"></i>
-        </a>
-      </li>
-      {% endif %}
-      
-      <li class="page-item disabled">
-        <span class="page-link">
-          Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
-        </span>
-      </li>
-
-      {% if page_obj.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
-          <i class="fas fa-chevron-right"></i>
-        </a>
-      </li>
-      {% endif %}
-    </ul>
-  </nav>
-  {% endif %}
+    {% include 'alerts/partials/_pagination.html' %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Utiliser la délégation d'événements pour gérer les clics sur les boutons
+    $(document).on('click', '.mark-read', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var button = $(this);
+        var alertItem = button.closest('.alert-item');
+        var alertId = alertItem.data('alert-id');
+        
+        $.post("{% url 'alerts:mark_read' 0 %}".replace('0', alertId), {
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        }, function() {
+            alertItem.fadeOut(function() {
+                alertItem.removeClass('list-group-item-' + alertItem.data('color'));
+                button.closest('.btn-group').html(
+                    '<button type="button" class="btn btn-outline-warning mark-unread" title="Marquer comme non lu">' +
+                    '<i class="fas fa-undo"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger delete-alert" title="Supprimer">' +
+                    '<i class="fas fa-times"></i></button>'
+                );
+                alertItem.fadeIn();
+            });
+        });
+    });
+
+    $(document).on('click', '.mark-unread', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var button = $(this);
+        var alertItem = button.closest('.alert-item');
+        var alertId = alertItem.data('alert-id');
+        
+        $.post("{% url 'alerts:mark_unread' 0 %}".replace('0', alertId), {
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        }, function() {
+            alertItem.fadeOut(function() {
+                alertItem.addClass('list-group-item-' + alertItem.data('color'));
+                button.closest('.btn-group').html(
+                    '<button type="button" class="btn btn-outline-primary mark-read" title="Marquer comme lu">' +
+                    '<i class="fas fa-check"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger delete-alert" title="Supprimer">' +
+                    '<i class="fas fa-times"></i></button>'
+                );
+                alertItem.fadeIn();
+            });
+        });
+    });
+
+    $(document).on('click', '.delete-alert', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var button = $(this);
+        var alertItem = button.closest('.alert-item');
+        var alertId = alertItem.data('alert-id');
+        
+        if (confirm('Voulez-vous vraiment supprimer cette alerte ?')) {
+            $.post("{% url 'alerts:delete' 0 %}".replace('0', alertId), {
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            }, function() {
+                alertItem.fadeOut(function() {
+                    alertItem.remove();
+                    // Mettre à jour le compteur
+                    var count = parseInt($('.text-muted').text());
+                    $('.text-muted').text((count - 1) + ' alerte(s)');
+                });
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

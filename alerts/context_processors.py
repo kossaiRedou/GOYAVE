@@ -34,10 +34,11 @@ def alerts(request):
     }
 
 def check_stock_levels():
-    """Vérifie les niveaux de stock bas"""
+    """Vérifie les niveaux de stock bas et nettoie les alertes obsolètes"""
     seuil = getattr(settings, 'LOW_STOCK_THRESHOLD', 5)
-    produits_bas = Produit.objects.filter(stock__lte=seuil)
     
+    # 1. Créer des alertes pour les stocks bas
+    produits_bas = Produit.objects.filter(stock__lte=seuil)
     for produit in produits_bas:
         Alert.objects.get_or_create(
             type=Alert.STOCK_LOW,
@@ -49,6 +50,15 @@ def check_stock_levels():
                 'message': f"Stock bas pour « {produit.nom} » ({produit.code}) : {produit.stock}"
             }
         )
+    
+    # 2. Marquer comme lues les alertes des produits dont le stock est redevenu suffisant
+    ct_produit = ContentType.objects.get_for_model(Produit)
+    Alert.objects.filter(
+        type=Alert.STOCK_LOW,
+        is_read=False,
+        target_ct=ct_produit,
+        target_id__in=Produit.objects.filter(stock__gt=seuil).values_list('id', flat=True)
+    ).update(is_read=True)
 
 def check_product_expiration():
     """Vérifie les produits proche de la date d'expiration"""

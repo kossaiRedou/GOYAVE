@@ -1,0 +1,51 @@
+{% load static %}
+
+<div class="list-group-item {% if not alert.is_read %}list-group-item-{{ alert.color }}{% endif %} alert-item" data-alert-id="{{ alert.id }}">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="form-check">
+                <input type="checkbox" name="alert_ids" value="{{ alert.id }}" class="form-check-input">
+            </div>
+        </div>
+        <div class="col">
+            <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">
+                    <i class="fas fa-{% if alert.type == 'STOCK_LOW' %}box{% elif alert.type == 'EXPIRATION' %}calendar-times{% elif alert.type == 'PAYMENT_LATE_CLIENT' %}money-bill-wave{% elif alert.type == 'ORDER_PENDING' %}clock{% endif %} me-2"></i>
+                    {{ alert.message }}
+                </h6>
+                <small class="text-muted" title="{{ alert.created_at|date:'d/m/Y H:i' }}">
+                    {{ alert.created_at|timesince }}
+                </small>
+            </div>
+            <div class="mt-1">
+                <span class="badge bg-{{ alert.color }}">{{ alert.get_type_display }}</span>
+                {% if alert.target %}
+                <a href="{{ alert.target.get_absolute_url }}" class="text-decoration-none ms-2">
+                    <i class="fas fa-external-link-alt me-1"></i>Voir l'élément concerné
+                </a>
+                {% endif %}
+                {% if alert.expires_at %}
+                <small class="text-muted ms-2">
+                    <i class="fas fa-clock me-1"></i>Expire le {{ alert.expires_at|date:'d/m/Y' }}
+                </small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group btn-group-sm">
+                {% if not alert.is_read %}
+                <button type="button" class="btn btn-outline-primary mark-read" title="Marquer comme lu">
+                    <i class="fas fa-check"></i>
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-outline-warning mark-unread" title="Marquer comme non lu">
+                    <i class="fas fa-undo"></i>
+                </button>
+                {% endif %}
+                <button type="button" class="btn btn-outline-danger delete-alert" title="Supprimer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div> 

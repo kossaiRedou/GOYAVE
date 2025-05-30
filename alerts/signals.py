@@ -4,39 +4,69 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from datetime import timedelta
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F
+import logging
+
+logger = logging.getLogger(__name__)
 
 from stocks.models import MouvementStock
 from produits.models import Produit
 from ventes.models import Vente, PaiementVente
-from fournisseurs.models import CommandeFournisseur, PaiementFournisseur
+from fournisseurs.models import CommandeFournisseur, PaiementFournisseur, ReceptionAppro
 from .models import Alert
 
-@receiver(post_save, sender=MouvementStock)
-def create_low_stock_alert(sender, instance, created, **kwargs):
-    if not created or instance.type != MouvementStock.SORTIE:
-        return
-
-    produit = instance.produit
-    # après mise à jour du stock dans MouvementStock.save()
+def check_and_mark_stock_alerts(produit):
+    """Vérifie et marque les alertes de stock comme lues si nécessaire"""
     seuil = getattr(settings, 'LOW_STOCK_THRESHOLD', 5)
-    if produit.stock <= seuil:
+    if produit.stock > seuil:
         ct = ContentType.objects.get_for_model(produit)
-        # éviter les doublons non lus
-        exists = Alert.objects.filter(
+        count = Alert.objects.filter(
             type=Alert.STOCK_LOW,
             target_ct=ct,
             target_id=produit.pk,
             is_read=False
-        ).exists()
-        if not exists:
-            Alert.objects.create(
-                type=Alert.STOCK_LOW,
-                level=Alert.LEVEL_WARNING,
-                message=f"Stock bas pour « {produit.nom} » ({produit.code}) : {produit.stock}",
-                target_ct=ct,
-                target_id=produit.pk
-            )
+        ).update(is_read=True)
+        if count > 0:
+            logger.info(f"{count} alerte(s) marquée(s) comme lue(s) pour {produit.nom} (stock: {produit.stock})")
+        return count
+    return 0
+
+@receiver(post_save, sender=MouvementStock)
+def handle_stock_alerts(sender, instance, **kwargs):
+    """Gère les alertes de stock (création et nettoyage) lors des mouvements"""
+    # Recharger le produit pour avoir la valeur la plus récente du stock
+    produit = Produit.objects.get(pk=instance.produit.pk)
+    seuil = getattr(settings, 'LOW_STOCK_THRESHOLD', 5)
+    ct = ContentType.objects.get_for_model(produit)
+
+    logger.info(f"Vérification du stock pour {produit.nom} - Stock actuel: {produit.stock}, Seuil: {seuil}, Type: {instance.type}")
+
+    # Si c'est une sortie et que le stock est bas, créer une alerte si nécessaire
+    if instance.type == MouvementStock.SORTIE and produit.stock <= seuil:
+        alert, created = Alert.objects.get_or_create(
+            type=Alert.STOCK_LOW,
+            target_ct=ct,
+            target_id=produit.pk,
+            is_read=False,
+            defaults={
+                'level': Alert.LEVEL_WARNING,
+                'message': f"Stock bas pour « {produit.nom} » ({produit.code}) : {produit.stock}"
+            }
+        )
+        if created:
+            logger.info(f"Nouvelle alerte créée pour {produit.nom}")
+    
+    # Pour toute entrée de stock, vérifier si on peut marquer les alertes comme lues
+    elif instance.type == MouvementStock.ENTREE:
+        transaction.on_commit(lambda: check_and_mark_stock_alerts(produit))
+
+@receiver(post_save, sender=ReceptionAppro)
+def handle_reception_stock(sender, instance, created, **kwargs):
+    """Vérifie les alertes après une réception de commande"""
+    if created:  # Seulement pour les nouvelles réceptions
+        # On attend que la transaction soit terminée pour vérifier le stock
+        transaction.on_commit(lambda: check_and_mark_stock_alerts(instance.produit))
 
 @receiver(post_save, sender=Produit)
 def check_product_expiration(sender, instance, **kwargs):
@@ -48,77 +78,42 @@ def check_product_expiration(sender, instance, **kwargs):
     
     if instance.date_expiration <= warning_date:
         ct = ContentType.objects.get_for_model(instance)
-        # Éviter les doublons non lus
-        exists = Alert.objects.filter(
+        Alert.objects.get_or_create(
             type=Alert.EXPIRATION,
             target_ct=ct,
             target_id=instance.pk,
-            is_read=False
-        ).exists()
-        
-        if not exists:
-            jours_restants = (instance.date_expiration - timezone.now().date()).days
-            Alert.objects.create(
-                type=Alert.EXPIRATION,
-                level=Alert.LEVEL_DANGER,
-                message=f"Le produit « {instance.nom} » ({instance.code}) expire dans {jours_restants} jours",
-                target_ct=ct,
-                target_id=instance.pk,
-                expires_at=timezone.make_aware(timezone.datetime.combine(instance.date_expiration, timezone.datetime.min.time()))
-            )
+            is_read=False,
+            defaults={
+                'level': Alert.LEVEL_DANGER,
+                'message': f"Le produit « {instance.nom} » ({instance.code}) expire dans {(instance.date_expiration - timezone.now().date()).days} jours",
+                'expires_at': timezone.make_aware(timezone.datetime.combine(instance.date_expiration, timezone.datetime.min.time()))
+            }
+        )
 
-@receiver(post_save, sender=Vente)
-def check_payment_delay_client(sender, instance, created, **kwargs):
-    # Vérifier si la vente est entièrement payée
-    total_paye = instance.paiements.aggregate(total=models.Sum('montant'))['total'] or 0
-    if total_paye >= instance.montant_total:
-        return
-
-    delay_days = getattr(settings, 'PAYMENT_DELAY_WARNING_DAYS', 1)
-    warning_date = timezone.now() - timedelta(days=delay_days)
+@receiver(post_save, sender=PaiementVente)
+def check_payment_alerts(sender, instance, **kwargs):
+    """Vérifie et nettoie les alertes de paiement pour la vente concernée"""
+    vente = instance.vente
+    total_paye = vente.paiements.aggregate(total=models.Sum('montant'))['total'] or 0
     
-    if instance.date <= warning_date:
-        ct = ContentType.objects.get_for_model(instance)
-        exists = Alert.objects.filter(
+    if total_paye >= vente.montant_total:
+        # Si la vente est entièrement payée, marquer les alertes comme lues
+        ct = ContentType.objects.get_for_model(vente)
+        Alert.objects.filter(
             type=Alert.PAYMENT_LATE_CLIENT,
             target_ct=ct,
-            target_id=instance.pk,
+            target_id=vente.pk,
             is_read=False
-        ).exists()
-        
-        if not exists:
-            jours_retard = (timezone.now() - instance.date).days
-            Alert.objects.create(
-                type=Alert.PAYMENT_LATE_CLIENT,
-                level=Alert.LEVEL_DANGER,
-                message=f"Retard de paiement de {jours_retard} jours pour la vente #{instance.pk} ({instance.client})",
-                target_ct=ct,
-                target_id=instance.pk
-            )
+        ).update(is_read=True)
 
 @receiver(post_save, sender=CommandeFournisseur)
-def check_pending_orders(sender, instance, **kwargs):
+def check_order_alerts(sender, instance, **kwargs):
+    """Vérifie et nettoie les alertes de commande en attente"""
     if instance.statut != CommandeFournisseur.EN_ATTENTE:
-        return
-
-    days_pending = getattr(settings, 'ORDER_PENDING_WARNING_DAYS', 7)
-    warning_date = timezone.now() - timedelta(days=days_pending)
-    
-    if instance.date_commande <= warning_date:
         ct = ContentType.objects.get_for_model(instance)
-        exists = Alert.objects.filter(
+        Alert.objects.filter(
             type=Alert.ORDER_PENDING,
             target_ct=ct,
             target_id=instance.pk,
             is_read=False
-        ).exists()
-        
-        if not exists:
-            jours_attente = (timezone.now() - instance.date_commande).days
-            Alert.objects.create(
-                type=Alert.ORDER_PENDING,
-                level=Alert.LEVEL_INFO,
-                message=f"Commande #{instance.pk} ({instance.fournisseur.nom}) en attente depuis {jours_attente} jours",
-                target_ct=ct,
-                target_id=instance.pk
-            )
+        ).update(is_read=True)

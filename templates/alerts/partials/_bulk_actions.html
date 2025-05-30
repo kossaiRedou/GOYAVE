@@ -1,0 +1,22 @@
+{% load static %}
+
+<div class="card-header bg-white py-3">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="btn-group">
+                <button type="submit" name="action" value="mark_read" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-check me-2"></i>Marquer comme lu
+                </button>
+                <button type="submit" name="action" value="mark_unread" class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-undo me-2"></i>Marquer comme non lu
+                </button>
+                <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-trash me-2"></i>Supprimer
+                </button>
+            </div>
+        </div>
+        <div class="col text-end">
+            <small class="text-muted">{{ page_obj.paginator.count }} alerte(s)</small>
+        </div>
+    </div>
+</div> 

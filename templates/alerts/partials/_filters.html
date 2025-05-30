@@ -1,0 +1,51 @@
+{% load static %}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Type d'alerte</label>
+                <select name="type" class="form-select">
+                    <option value="">Tous les types</option>
+                    {% for type_code, type_label in alert_types %}
+                    <option value="{{ type_code }}" {% if type_code == current_type %}selected{% endif %}>
+                        <i class="fas fa-{% if type_code == 'STOCK_LOW' %}box{% elif type_code == 'EXPIRATION' %}calendar-times{% elif type_code == 'PAYMENT_LATE_CLIENT' %}money-bill-wave{% elif type_code == 'ORDER_PENDING' %}clock{% endif %}"></i>
+                        {{ type_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Statut</label>
+                <select name="status" class="form-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="unread" {% if current_status == 'unread' %}selected{% endif %}>
+                        <i class="fas fa-envelope"></i> Non lues
+                    </option>
+                    <option value="read" {% if current_status == 'read' %}selected{% endif %}>
+                        <i class="fas fa-envelope-open"></i> Lues
+                    </option>
+                    <option value="expired" {% if current_status == 'expired' %}selected{% endif %}>
+                        <i class="fas fa-clock"></i> Expirées
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date début</label>
+                <input type="date" name="from" class="form-control" value="{{ request.GET.from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date fin</label>
+                <input type="date" name="to" class="form-control" value="{{ request.GET.to }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Filtrer
+                </button>
+                <a href="{% url 'alerts:liste' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div> 
